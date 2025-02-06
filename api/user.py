@@ -4,7 +4,7 @@ from crud.user import create_user, get_user_by_id
 
 router = APIRouter(
     prefix="/users",
-    tags=["회원 관련 API"]
+    tags=["회원 API"]
 )
 
 @router.post(
