@@ -4,7 +4,7 @@ from crud.etf import get_etf_by_ticker
 
 router = APIRouter(
     prefix="/etfs",
-    tags=["ETF API"]  # Swagger UI에서 API 그룹 이름 설정
+    tags=["ETF API"]
 )
 
 @router.get("/{ticker}",
