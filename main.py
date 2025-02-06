@@ -1,6 +1,13 @@
 from fastapi import FastAPI
-from api.etf import router as etf_router
+from api.user import router as user_router
 
-app = FastAPI()
+app = FastAPI(
+    title="Get your ETF Server API",
+    description="TABA 4조",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
-app.include_router(etf_router)
+# 라우터 등록
+app.include_router(user_router)
