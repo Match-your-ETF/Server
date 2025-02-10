@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from schemas.mbti import MbtiResponse
-from crud.mbti import get_mbti_etfs
+from app.schemas.mbti import MbtiResponse
+from app.crud.mbti import get_mbti_etfs
 
 router = APIRouter(
     prefix="/mbti",

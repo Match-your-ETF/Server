@@ -1,4 +1,4 @@
-from db.connection import get_connection
+from app.db.connection import get_connection
 
 def get_mbti_etfs(mbtiCode: str):
     connection = get_connection()

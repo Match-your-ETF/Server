@@ -1,5 +1,5 @@
-from db.connection import get_connection
-from schemas.portfolio import PortfolioCreate
+from app.db.connection import get_connection
+from app.schemas.portfolio import PortfolioCreate
 import json
 
 def create_portfolio(portfolio_data: PortfolioCreate):

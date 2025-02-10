@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 
 # .env 파일 로드
-load_dotenv()
+env_file = ".env"
+load_dotenv(env_file)
 
 # 환경 변수에서 DB 설정 불러오기
 DB_CONFIG = {

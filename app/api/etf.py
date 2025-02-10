@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from schemas.etf import ETFResponse
-from crud.etf import get_etf_by_ticker
+from app.schemas.etf import ETFResponse
+from app.crud.etf import get_etf_by_ticker
 
 router = APIRouter(
     prefix="/etfs",

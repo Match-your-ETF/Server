@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-from schemas.portfolio import PortfolioCreate, PortfolioResponse, PortfolioListResponse
-from crud.portfolio import create_portfolio, get_portfolio_by_id, get_portfolios_by_user
+from app.schemas.portfolio import PortfolioCreate, PortfolioResponse, PortfolioListResponse
+from app.crud.portfolio import create_portfolio, get_portfolio_by_id, get_portfolios_by_user
 
 router = APIRouter(
     prefix="/portfolios",

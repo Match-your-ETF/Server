@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from schemas.market_indicator import MarketIndicatorResponse
-from crud.market_indicator import get_market_indicator_by_name
+from app.schemas.market_indicator import MarketIndicatorResponse
+from app.crud.market_indicator import get_market_indicator_by_name
 
 router = APIRouter(
     prefix="/market",

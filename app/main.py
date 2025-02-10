@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from api.user import router as user_router
-from api.etf import router as etf_router
-from api.portfolio import router as portfolio_router
-from api.mbti import router as mbti_router
-from api.market_indicator import router as market_indicator_router
+from app.api.user import router as user_router
+from app.api.etf import router as etf_router
+from app.api.portfolio import router as portfolio_router
+from app.api.mbti import router as mbti_router
+from app.api.market_indicator import router as market_indicator_router
 
 app = FastAPI(
     title="Get your ETF Server API",

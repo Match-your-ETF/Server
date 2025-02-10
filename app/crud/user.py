@@ -1,5 +1,5 @@
-from db.connection import get_connection
-from schemas.user import UserCreate
+from app.db.connection import get_connection
+from app.schemas.user import UserCreate
 
 def create_user(user_data: UserCreate):
     conn = get_connection()
