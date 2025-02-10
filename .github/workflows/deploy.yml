@@ -44,10 +44,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/Server  # EC2 내 프로젝트 디렉토리로 이동
-            docker pull ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
-            docker stop fastapi-container || true
-            docker rm fastapi-container || true
-            docker run -d --restart always --name fastapi-container -v /home/ubuntu/Server/.env:/Server/.env -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
+            sudo docker stop fastapi-container || true
+            sudo docker rm fastapi-container || true
+            sudo docker run -d --restart always --name fastapi-container -v /home/ubuntu/Server/.env:/Server/.env -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
 
             # 실행 확인을 위해 로그 출력
             sleep 5
