@@ -28,7 +28,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/ubuntu/taba  # EC2 내 프로젝트 디렉토리로 이동
+            cd /home/ubuntu/Server  # EC2 내 프로젝트 디렉토리로 이동
             echo "DB_HOST=${{ secrets.DB_HOST }}" > .env
             echo "DB_USER=${{ secrets.DB_USER }}" >> .env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
@@ -43,11 +43,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/ubuntu/taba  # EC2 내 프로젝트 디렉토리로 이동
+            cd /home/ubuntu/Server  # EC2 내 프로젝트 디렉토리로 이동
             docker pull ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
             docker stop fastapi-container || true
             docker rm fastapi-container || true
-            docker run -d --restart always --name fastapi-container -v /home/ubuntu/taba/.env:/taba/.env -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
+            docker run -d --restart always --name fastapi-container -v /home/ubuntu/Server/.env:/Server/.env -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
 
             # 실행 확인을 위해 로그 출력
             sleep 5

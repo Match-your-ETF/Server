@@ -1,6 +1,6 @@
 FROM python:3.11
 
-WORKDIR /taba
+WORKDIR /Server
 ENV ENV="prod"
 
 # 종속성 설치
