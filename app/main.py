@@ -6,7 +6,7 @@ from app.api.mbti import router as mbti_router
 from app.api.market_indicator import router as market_indicator_router
 
 app = FastAPI(
-    title="Get your ETF Server API",
+    title="Match your ETF Server API",
     description="TABA 4조",
     version="1.0.0",
     docs_url="/docs",
