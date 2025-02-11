@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from app.crud.portfolio import create_portfolio_with_context
-from app.crud.portfolio import get_portfolio_logs
-from app.schemas.portfolio import PortfolioCreateRequest, PortfolioResponse, PortfolioLogsResponse
+from app.crud.portfolio import create_portfolio_with_context, get_portfolio_logs, update_custom_portfolio
+from app.schemas.portfolio import PortfolioCreateRequest, PortfolioResponse, PortfolioLogsResponse, CustomPortfolioRequest, CustomPortfolioResponse
 
 router = APIRouter(
     prefix="/portfolios",
@@ -32,3 +31,12 @@ def get_portfolio_logs_api(context_id: int):
         raise HTTPException(status_code=404, detail="해당 context_id에 대한 로그가 없습니다.")
 
     return {"data": logs}
+
+@router.post("/custom/{portfolio_id}", response_model=CustomPortfolioResponse)
+def update_portfolio(portfolio_id: int, request: CustomPortfolioRequest):
+    success = update_custom_portfolio(portfolio_id, request)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="포트폴리오 업데이트 실패")
+
+    return {"isSuccess": True}

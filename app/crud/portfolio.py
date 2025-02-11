@@ -1,5 +1,19 @@
 from app.db.connection import get_connection
 import json
+from app.schemas.portfolio import CustomPortfolioRequest
+import decimal
+
+# Decimal 변환 함수
+def convert_decimal_to_float(data):
+    """딕셔너리 내부의 Decimal 값을 float으로 변환"""
+    if isinstance(data, decimal.Decimal):
+        return float(data)
+    elif isinstance(data, dict):
+        return {k: convert_decimal_to_float(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_decimal_to_float(i) for i in data]
+    return data
+
 
 def create_portfolio_with_context(user_id: int, mbti_code: str):
     """
@@ -104,6 +118,86 @@ def get_portfolio_logs(context_id: int):
     except Exception as e:
         print(f"DB 조회 오류: {e}")
         return []
+
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
+    """ 사용자가 직접 설정한 포트폴리오 정보를 업데이트 """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 사용자 정보 업데이트 (target_investment_period, investment_goal, rebalancing_frequency)
+        if data.target_investment_period or data.investment_goal or data.rebalancing_frequency:
+            query = """
+                UPDATE user 
+                SET target_investment_period = %s, investment_goal = %s, rebalancing_frequency = %s
+                WHERE user_id = %s
+            """
+            cursor.execute(query, (
+                data.target_investment_period,
+                json.dumps(data.investment_goal, ensure_ascii=False) if data.investment_goal else None,
+                data.rebalancing_frequency,
+                data.user_id
+            ))
+            conn.commit()
+
+        # 선택한 market_indicator 데이터 가져오기 (옵션)
+        market_indicators = None
+        if data.market_indicator_name:
+            query = "SELECT interest_rate, inflation_rate, exchange_rate FROM market_indicator WHERE name = %s"
+            cursor.execute(query, (data.market_indicator_name,))
+            market_indicator_data = cursor.fetchone()
+
+            if market_indicator_data:
+                market_indicator_data = convert_decimal_to_float(market_indicator_data)
+                market_indicators = json.dumps(market_indicator_data, ensure_ascii=False)
+
+        # user_indicators 데이터 구성 (user 업데이트 정보 + market_indicator 선택 정보)
+        user_indicators = json.dumps({
+            "target_investment_period": data.target_investment_period,
+            "investment_goal": data.investment_goal,
+            "rebalancing_frequency": data.rebalancing_frequency,
+            "market_indicator_name": data.market_indicator_name
+        })
+
+        # 최신 revision 찾기 (해당 portfolio의 가장 최신 revision_id)
+        query = """
+            SELECT revision_id FROM revision 
+            WHERE portfolio_id = %s 
+            ORDER BY revision_id DESC LIMIT 1
+        """
+        cursor.execute(query, (portfolio_id,))
+        latest_revision = cursor.fetchone()
+
+        if not latest_revision:
+            print(f"No revisions found for portfolio_id={portfolio_id}")
+            return False
+
+        revision_id = latest_revision["revision_id"]
+
+        # revision 테이블 업데이트 (필수: etfs, 옵션: market_indicators, user_indicators)
+        query = """
+            UPDATE revision 
+            SET etfs = %s, market_indicators = %s, user_indicators = %s 
+            WHERE revision_id = %s
+        """
+        cursor.execute(query, (
+            json.dumps(data.etfs),  # etfs 값 그대로 저장
+            market_indicators if market_indicators else "{}",  # market_indicators (선택)
+            user_indicators,  # user_indicators (user 정보 + market_indicator 선택 정보)
+            revision_id
+        ))
+        conn.commit()
+
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        print(f"DB 업데이트 오류: {e}")
+        return False
 
     finally:
         cursor.close()

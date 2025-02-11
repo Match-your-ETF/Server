@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
-from typing import List
+from typing import Optional, List, Dict, Any
 
 class PortfolioCreateRequest(BaseModel):
     user_id: int
@@ -28,3 +27,14 @@ class PortfolioLog(BaseModel):
 
 class PortfolioLogsResponse(BaseModel):
     data: List[PortfolioLog]
+
+class CustomPortfolioRequest(BaseModel):
+    user_id: int
+    etfs: Dict[str, Any]  # JSON 데이터
+    market_indicator_name: Optional[str] = None
+    target_investment_period: Optional[int] = None
+    investment_goal: Optional[Dict[str, Any]] = None
+    rebalancing_frequency: Optional[int] = None
+
+class CustomPortfolioResponse(BaseModel):
+    isSuccess: bool
