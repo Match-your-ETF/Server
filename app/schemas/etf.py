@@ -18,11 +18,3 @@ class ETFResponse(BaseModel):
     mbti_code: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-    class Config:
-        orm_mode = True
-        alias_generator = lambda string: ''.join(
-            word.capitalize() if i else word
-            for i, word in enumerate(string.split('_'))
-        )
-        populate_by_name = True
