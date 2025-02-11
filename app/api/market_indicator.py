@@ -3,7 +3,7 @@ from app.schemas.market_indicator import MarketIndicatorResponse
 from app.crud.market_indicator import get_market_indicator_by_name
 
 router = APIRouter(
-    prefix="/market",
+    prefix="/markets",
     tags=["시장 지표 API"]
 )
 
