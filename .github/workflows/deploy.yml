@@ -18,8 +18,8 @@ jobs:
 
       - name: Docker 이미지 빌드 및 푸시
         run: |
-          sudo docker build -t ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest .
-          sudo docker push ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/fastapi-app:latest
 
       - name: 서버에 환경 변수 파일 업로드
         uses: appleboy/ssh-action@v0.1.10
