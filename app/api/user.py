@@ -8,6 +8,7 @@ router = APIRouter(
 )
 
 @router.post(
+    "/",
     response_model=UserResponse,
     summary="사용자 회원가입 API"
 )

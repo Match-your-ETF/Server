@@ -7,9 +7,10 @@ router = APIRouter(
     tags=["ETF API"]
 )
 
-@router.get("/{ticker}",
-            response_model=ETFResponse,
-            summary="개별 ETF 상세 정보 조회"
+@router.get(
+    "/{ticker}",
+        response_model=ETFResponse,
+        summary="개별 ETF 상세 정보 조회"
 )
 def get_etf_api(ticker: str):
     etf = get_etf_by_ticker(ticker)
