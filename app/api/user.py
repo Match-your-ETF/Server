@@ -8,7 +8,6 @@ router = APIRouter(
 )
 
 @router.post(
-    "/users",
     response_model=UserResponse,
     summary="사용자 회원가입 API"
 )
@@ -20,7 +19,7 @@ def create_user_api(user: UserCreate):
     return created_user
 
 @router.get(
-    "/users/{user_id}",
+    "/{user_id}",
     response_model=UserResponse,
     summary="사용자 정보 조회 API"
 )
