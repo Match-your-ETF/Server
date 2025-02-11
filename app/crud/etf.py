@@ -6,13 +6,7 @@ def get_etf_by_ticker(ticker: str):
         with conn.cursor() as cursor:
             sql = """
             SELECT 
-                etf_id, 
-                ticker, 
-                sector, 
-                name, 
-                mbti_code, 
-                description, 
-                mbti_vector
+                *
             FROM etf 
             WHERE ticker = %s
             """
