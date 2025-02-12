@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.crud.portfolio import create_portfolio_with_context, get_portfolio_logs, update_custom_portfolio
+from app.crud.portfolio import *
 from app.schemas.portfolio import *
 
 router = APIRouter(
@@ -14,6 +14,7 @@ router = APIRouter(
 )
 def create_portfolio(request: PortfolioCreateRequest):
     result = create_portfolio_with_context(request.user_id, request.mbti_code)
+
     if result is None:
         raise HTTPException(status_code=404, detail="MBTI 코드가 존재하지 않습니다.")
 
@@ -28,7 +29,7 @@ def get_portfolio_logs_api(contextId: int):
     logs = get_portfolio_logs(contextId)
 
     if not logs:
-        raise HTTPException(status_code=404, detail="해당 context_id에 대한 포트폴리오 로그데이터가 없습니다.")
+        raise HTTPException(status_code=404, detail="해당 context_id에 대한 포트폴리오 로그 데이터가 없습니다.")
 
     return {"data": logs}
 
@@ -45,13 +46,28 @@ def update_portfolio(portfolioId: int, request: CustomPortfolioRequest):
 
     return {"isSuccess": True}
 
+@router.put(
+    "/custom/{contextId}",
+    response_model=DecisionPortfolioResponse,
+    summary="최종 결정 API"
+)
+def decision_portfolio_api(contextId: int, request: DecisionPortfolioRequest):
+    response = decision_portfolio(contextId, request)
+
+    if response is None:
+        raise HTTPException(status_code=404, detail="해당 context_id가 존재하지 않습니다.")
+
+    return response
+
 @router.post(
     "/investment/{contextId}",
     response_model=DecisionInvestmentResponse,
     summary="모의 투자 결정 API"
 )
-def decision_investment(contextId: int):
-    response = decision_investment(contextId)
-    if not response:
-        raise HTTPException(status_code=500, detail="Failed to create portfolio and revision")
+def decision_investment_api(contextId: int, data: DecisionPortfolioRequest):
+    response = decision_portfolio(contextId, data)
+
+    if response is None:
+        raise HTTPException(status_code=500, detail="모의 투자 결정 실패")
+
     return response

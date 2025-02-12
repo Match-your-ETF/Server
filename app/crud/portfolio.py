@@ -1,8 +1,7 @@
 from app.db.connection import get_connection
 import json
-from fastapi import HTTPException
-from app.schemas.portfolio import *
 import decimal
+from app.schemas.portfolio import *
 
 
 def convert_decimal_to_float(data):
@@ -23,7 +22,6 @@ def create_portfolio_with_context(user_id: int, mbti_code: str):
     3. revision 생성
     4. mbti 테이블에서 ETF 데이터 조회 후 리턴
     """
-
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -66,13 +64,7 @@ def create_portfolio_with_context(user_id: int, mbti_code: str):
         mbti_data = cursor.fetchone()
 
         if not mbti_data:
-            mbti_data = {
-                "etf1": None, "allocation1": None,
-                "etf2": None, "allocation2": None,
-                "etf3": None, "allocation3": None,
-                "etf4": None, "allocation4": None,
-                "etf5": None, "allocation5": None
-            }
+            return None
 
         return PortfolioResponse(
             context_id=context_id,
@@ -89,7 +81,6 @@ def create_portfolio_with_context(user_id: int, mbti_code: str):
     finally:
         cursor.close()
         conn.close()
-
 
 def get_portfolio_logs(context_id: int):
     """ 특정 context_id에 속한 모든 포트폴리오의 revision 로그 조회 """
@@ -144,7 +135,6 @@ def get_portfolio_logs(context_id: int):
     finally:
         cursor.close()
         conn.close()
-
 
 def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
     """ 사용자가 직접 설정한 포트폴리오 정보를 업데이트 """
@@ -228,7 +218,6 @@ def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
         cursor.close()
         conn.close()
 
-
 def decision_investment(context_id: int) -> DecisionInvestmentResponse:
     """ 주어진 context_id를 유지하면서 새로운 portfolio와 revision을 생성 """
     conn = get_connection()
@@ -236,8 +225,10 @@ def decision_investment(context_id: int) -> DecisionInvestmentResponse:
 
     try:
         # 새로운 portfolio 생성
-        cursor.execute("INSERT INTO portfolio (context_id, created_at, updated_at) VALUES (%s, NOW(), NOW())",
-                       (context_id,))
+        cursor.execute(
+            "INSERT INTO portfolio (context_id, created_at, updated_at) VALUES (%s, NOW(), NOW())",
+            (context_id,)
+        )
         conn.commit()
 
         # 새로 생성된 portfolio_id 가져오기
@@ -264,7 +255,50 @@ def decision_investment(context_id: int) -> DecisionInvestmentResponse:
     except Exception as e:
         conn.rollback()
         print(f"[Error] Failed to create investment decision: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        return None
+
+    finally:
+        cursor.close()
+        conn.close()
+
+def decision_portfolio(context_id: int, data: DecisionPortfolioRequest) -> DecisionPortfolioResponse:
+    """
+    주어진 context_id로 context 테이블의 name을 업데이트하고 변경된 데이터를 반환
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        # context_id로 기존 레코드 조회
+        cursor.execute(
+            "SELECT context_id, name, user_id, created_at, updated_at FROM context WHERE context_id = %s",
+            (context_id,)
+        )
+        existing_context = cursor.fetchone()
+
+        if not existing_context:
+            return None
+
+        # name 업데이트
+        cursor.execute(
+            "UPDATE context SET name = %s, updated_at = NOW() WHERE context_id = %s",
+            (data.name, context_id)
+        )
+        conn.commit()
+
+        # 업데이트된 데이터 가져오기
+        cursor.execute(
+            "SELECT context_id, name, user_id, created_at, updated_at FROM context WHERE context_id = %s",
+            (context_id,)
+        )
+        updated_context = cursor.fetchone()
+
+        return DecisionPortfolioResponse(**updated_context)
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[Error] Failed to update context name: {e}")
+        return None
 
     finally:
         cursor.close()

@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 class PortfolioCreateRequest(BaseModel):
@@ -46,3 +47,15 @@ class CustomPortfolioResponse(BaseModel):
 class DecisionInvestmentResponse(BaseModel):
     portfolio_id: int
     revision_id: int
+
+
+## 최종 결정 DTO
+class DecisionPortfolioRequest(BaseModel):
+    name: str
+
+class DecisionPortfolioResponse(BaseModel):
+    context_id: int
+    name: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
