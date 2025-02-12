@@ -19,7 +19,7 @@ def get_etf_api(ticker: str):
     return etf
 
 @router.get(
-    "",
+    "/search",
     response_model=SearchETFResponse,
     summary="ETF 검색 API"
 )
