@@ -32,7 +32,11 @@ def get_portfolio_logs_api(context_id: int):
 
     return {"data": logs}
 
-@router.post("/custom/{portfolio_id}", response_model=CustomPortfolioResponse)
+@router.post(
+    "/custom/{portfolio_id}",
+    response_model=CustomPortfolioResponse,
+    summary="사용자 커스텀 포트폴리오 생성 API"
+)
 def update_portfolio(portfolio_id: int, request: CustomPortfolioRequest):
     success = update_custom_portfolio(portfolio_id, request)
 
