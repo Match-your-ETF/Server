@@ -1,23 +1,11 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas.user import UserCreate, UserResponse
-from app.crud.user import create_user, get_user_by_id
+from app.schemas.user import UserResponse
+from app.crud.user import get_user_by_id
 
 router = APIRouter(
     prefix="/users",
     tags=["회원 API"]
 )
-
-@router.post(
-    "/",
-    response_model=UserResponse,
-    summary="사용자 회원가입 API"
-)
-def create_user_api(user: UserCreate):
-    user_id = create_user(user)
-    if not user_id:
-        raise HTTPException(status_code=500, detail="사용자를 생성하는데 실패했습니다.")
-    created_user = get_user_by_id(user_id)
-    return created_user
 
 @router.get(
     "/{userId}",
