@@ -34,7 +34,7 @@ def get_portfolio_logs_api(contextId: int):
     return {"data": logs}
 
 @router.put(
-    "/custom/{portfolioId}",
+    "/{portfolioId}/custom",
     response_model=CustomPortfolioResponse,
     summary="포트폴리오 사용자 커스텀 API"
 )
@@ -47,7 +47,7 @@ def update_portfolio(portfolioId: int, request: CustomPortfolioRequest):
     return {"is_success": True}
 
 @router.post(
-    "/investment/{contextId}",
+    "/{contextId}",
     response_model=DecisionInvestmentResponse,
     summary="새 포트폴리오 생성 API"
 )
@@ -60,7 +60,7 @@ def decision_investment_api(contextId: int):
     return response
 
 @router.put(
-    "/decision/{contextId}",
+    "/{contextId}/decision",
     response_model=DecisionPortfolioResponse,
     summary="최종 결정 API"
 )
