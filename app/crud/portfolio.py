@@ -129,16 +129,17 @@ def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
     cursor = conn.cursor()
 
     try:
-        # 사용자 정보 업데이트 (target_investment_period, investment_goal, rebalancing_frequency)
-        if data.target_investment_period or data.investment_goal or data.rebalancing_frequency:
+        # 사용자 정보 업데이트 (investment_period, investment_goal, investment_amount, rebalancing_frequency)
+        if data.investment_period or data.investment_goal or data.investment_amount or data.rebalancing_frequency:
             query = """
                 UPDATE user 
-                SET target_investment_period = %s, investment_goal = %s, rebalancing_frequency = %s
+                SET investment_period = %s, investment_goal = %s, investment_amount = %s, rebalancing_frequency = %s
                 WHERE user_id = %s
             """
             cursor.execute(query, (
-                data.target_investment_period,
-                json.dumps(data.investment_goal, ensure_ascii=False) if data.investment_goal else None,
+                data.investment_period,
+                data.investment_goal,
+                data.investment_amount,
                 data.rebalancing_frequency,
                 data.user_id
             ))
@@ -157,8 +158,9 @@ def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
 
         # user_indicators 데이터 구성 (user 업데이트 정보 + market_indicator 선택 정보)
         user_indicators = json.dumps({
-            "target_investment_period": data.target_investment_period,
+            "investment_period": data.investment_period,
             "investment_goal": data.investment_goal,
+            "investment_amount": data.investment_amount,
             "rebalancing_frequency": data.rebalancing_frequency,
             "market_indicator_name": data.market_indicator_name
         })
@@ -185,7 +187,7 @@ def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
             WHERE revision_id = %s
         """
         cursor.execute(query, (
-            json.dumps(data.etfs),  # etfs 값 그대로 저장
+            json.dumps(data.etfs, ensure_ascii=False),  # etfs 값 그대로 저장
             market_indicators if market_indicators else "{}",  # market_indicators (선택)
             user_indicators,  # user_indicators (user 정보 + market_indicator 선택 정보)
             revision_id

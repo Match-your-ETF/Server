@@ -19,8 +19,9 @@ class UserResponse(BaseModel):
     user_id: int
     name: str
     age: int
-    target_investment_period: Optional[int] = None
+    investment_period: Optional[int] = None
     investment_goal: Optional[str] = None
+    investment_amount: Optional[int] = None
     rebalancing_frequency: Optional[int] = None
     mbti_code: str
     mbti_vector: str
