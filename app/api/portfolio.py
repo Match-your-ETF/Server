@@ -12,7 +12,7 @@ router = APIRouter(
     response_model=PortfolioResponse,
     summary="MBTI 기반 기본 추천 정보 생성/조회 API"
 )
-def create_portfolio(request: PortfolioCreateRequest):
+def create_portfolio_api(request: PortfolioCreateRequest):
     result = create_portfolio_with_context(request.user_id, request.mbti_code)
 
     if result is None:
@@ -38,7 +38,7 @@ def get_portfolio_logs_api(contextId: int):
     response_model=CustomPortfolioResponse,
     summary="포트폴리오 사용자 커스텀 API"
 )
-def update_portfolio(portfolioId: int, request: CustomPortfolioRequest):
+def update_portfolio_api(portfolioId: int, request: CustomPortfolioRequest):
     success = update_custom_portfolio(portfolioId, request)
 
     if not success:
