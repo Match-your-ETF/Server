@@ -27,7 +27,7 @@ def create_portfolio_with_context(user_id: int, mbti_code: str):
 
     try:
         # context 테이블에 새로운 행 추가
-        cursor.execute("INSERT INTO context (user_id, name) VALUES (%s, %s)", (user_id, "New Context"))
+        cursor.execute("INSERT INTO context (user_id, name) VALUES (%s, %s)", (user_id, None))
         conn.commit()
 
         # 새 context_id 가져오기
@@ -238,8 +238,8 @@ def decision_investment(context_id: int) -> DecisionInvestmentResponse:
         # 새로운 revision 생성
         cursor.execute(
             """
-            INSERT INTO revision (portfolio_id, etfs, market_indicators, user_indicators, ai_feedback, created_at, updated_at) 
-            VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+            INSERT INTO revision (portfolio_id, etfs, market_indicators, user_indicators, ai_feedback) 
+            VALUES (%s, %s, %s, %s, %s)
             """,
             (portfolio_id, '{}', '{}', '{}', '{}')
         )
@@ -277,14 +277,19 @@ def decision_portfolio(context_id: int, data: DecisionPortfolioRequest) -> Decis
         existing_context = cursor.fetchone()
 
         if not existing_context:
-            return None
+            print(f"[Error] Context ID {context_id} not found")
+            return None  # 존재하지 않는 경우 None 반환
 
-        # name 업데이트
+        # name 업데이트 실행
         cursor.execute(
             "UPDATE context SET name = %s, updated_at = NOW() WHERE context_id = %s",
             (data.name, context_id)
         )
         conn.commit()
+
+        # 업데이트된 행이 있는지 확인
+        if cursor.rowcount == 0:
+            print(f"[Warning] No rows were updated. Possible duplicate name or already updated.")
 
         # 업데이트된 데이터 가져오기
         cursor.execute(
@@ -292,6 +297,12 @@ def decision_portfolio(context_id: int, data: DecisionPortfolioRequest) -> Decis
             (context_id,)
         )
         updated_context = cursor.fetchone()
+
+        if updated_context is None:
+            print(f"[Error] Failed to retrieve updated context data for context_id={context_id}")
+            return None  # SELECT 결과가 None이면 None 반환
+
+        print(f"[Success] Updated Context Data: {updated_context}")
 
         return DecisionPortfolioResponse(**updated_context)
 

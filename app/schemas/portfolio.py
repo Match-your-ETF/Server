@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -55,7 +55,7 @@ class DecisionPortfolioRequest(BaseModel):
 
 class DecisionPortfolioResponse(BaseModel):
     context_id: int
-    name: int
+    name: str
     user_id: int
     created_at: datetime
     updated_at: datetime

@@ -44,10 +44,23 @@ def update_portfolio(portfolioId: int, request: CustomPortfolioRequest):
     if not success:
         raise HTTPException(status_code=500, detail="포트폴리오 업데이트 실패했습니다")
 
-    return {"isSuccess": True}
+    return {"is_success": True}
+
+@router.post(
+    "/investment/{contextId}",
+    response_model=DecisionInvestmentResponse,
+    summary="새 포트폴리오 생성 API"
+)
+def decision_investment_api(contextId: int):
+    response = decision_investment(contextId)
+
+    if response is None:
+        raise HTTPException(status_code=500, detail="모의 투자 결정 실패")
+
+    return response
 
 @router.put(
-    "/custom/{contextId}",
+    "/decision/{contextId}",
     response_model=DecisionPortfolioResponse,
     summary="최종 결정 API"
 )
@@ -56,18 +69,5 @@ def decision_portfolio_api(contextId: int, request: DecisionPortfolioRequest):
 
     if response is None:
         raise HTTPException(status_code=404, detail="해당 context_id가 존재하지 않습니다.")
-
-    return response
-
-@router.post(
-    "/investment/{contextId}",
-    response_model=DecisionInvestmentResponse,
-    summary="모의 투자 결정 API"
-)
-def decision_investment_api(contextId: int, data: DecisionPortfolioRequest):
-    response = decision_portfolio(contextId, data)
-
-    if response is None:
-        raise HTTPException(status_code=500, detail="모의 투자 결정 실패")
 
     return response
