@@ -21,7 +21,7 @@ def create_portfolio(request: PortfolioCreateRequest):
     return result
 
 @router.get(
-    "/logs/{contextId}",
+    "/{contextId}/logs",
     response_model=PortfolioLogsResponse,
     summary="특정 context_id에 대한 포트폴리오 로그 조회"
 )
