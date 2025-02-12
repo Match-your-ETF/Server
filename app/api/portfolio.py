@@ -8,7 +8,7 @@ router = APIRouter(
 )
 
 @router.post(
-    "/",
+    "",
     response_model=PortfolioResponse,
     summary="MBTI 기반 기본 추천 정보 생성/조회 API"
 )
