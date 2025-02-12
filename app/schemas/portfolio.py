@@ -6,6 +6,9 @@ class PortfolioCreateRequest(BaseModel):
     mbti_code: str
 
 class PortfolioResponse(BaseModel):
+    context_id: int
+    portfolio_id: int
+    revision_id: int
     etf1: Optional[str] = None
     allocation1: Optional[int] = None
     etf2: Optional[str] = None

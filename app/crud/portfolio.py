@@ -1,9 +1,8 @@
 from app.db.connection import get_connection
 import json
-from app.schemas.portfolio import CustomPortfolioRequest
+from app.schemas.portfolio import CustomPortfolioRequest, PortfolioResponse
 import decimal
 
-# Decimal 변환 함수
 def convert_decimal_to_float(data):
     """딕셔너리 내부의 Decimal 값을 float으로 변환"""
     if isinstance(data, decimal.Decimal):
@@ -50,14 +49,35 @@ def create_portfolio_with_context(user_id: int, mbti_code: str):
         )
         conn.commit()
 
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        revision_id = cursor.fetchone()["LAST_INSERT_ID()"]
+
         # mbti 테이블에서 ETF 배분 정보 조회
-        cursor.execute("SELECT etf1, allocation1, etf2, allocation2, etf3, allocation3, etf4, allocation4, etf5, allocation5 FROM mbti WHERE mbti_code = %s", (mbti_code,))
+        cursor.execute(
+            """
+            SELECT etf1, allocation1, etf2, allocation2, etf3, allocation3, etf4, allocation4, etf5, allocation5 
+            FROM mbti 
+            WHERE mbti_code = %s
+            """,
+            (mbti_code,)
+        )
         mbti_data = cursor.fetchone()
 
         if not mbti_data:
-            return None  # MBTI 데이터가 없으면 None 반환
+            mbti_data = {
+                "etf1": None, "allocation1": None,
+                "etf2": None, "allocation2": None,
+                "etf3": None, "allocation3": None,
+                "etf4": None, "allocation4": None,
+                "etf5": None, "allocation5": None
+            }
 
-        return mbti_data
+        return PortfolioResponse(
+            context_id=context_id,
+            portfolio_id=portfolio_id,
+            revision_id=revision_id,
+            **mbti_data
+        )
 
     except Exception as e:
         conn.rollback()
