@@ -24,5 +24,5 @@ def get_user_api(userId: int):
     response_model=List[UserLog],
     summary="사용자 context 리스트 조회"
 )
-def read_user_logs(userId: int = Query(..., description="사용자 ID")):
+def get_user_logs_api(userId: int = Query(..., description="사용자 ID")):
     return get_user_logs(userId)
