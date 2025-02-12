@@ -34,6 +34,7 @@ jobs:
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
             echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
             echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
+            echo "GPT_API_KEY=${{ secrets.GPT_API_KEY }}" >> .env
             echo "ENV=prod" >> .env
 
       - name: 서버에서 Docker Compose로 배포 실행
