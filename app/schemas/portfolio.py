@@ -41,4 +41,8 @@ class CustomPortfolioRequest(BaseModel):
     rebalancing_frequency: Optional[int] = None
 
 class CustomPortfolioResponse(BaseModel):
-    isSuccess: bool
+    is_success: bool
+
+class DecisionInvestmentResponse(BaseModel):
+    portfolio_id: int
+    revision_id: int

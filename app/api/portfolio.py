@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.crud.portfolio import create_portfolio_with_context, get_portfolio_logs, update_custom_portfolio
-from app.schemas.portfolio import PortfolioCreateRequest, PortfolioResponse, PortfolioLogsResponse, CustomPortfolioRequest, CustomPortfolioResponse
+from app.schemas.portfolio import *
 
 router = APIRouter(
     prefix="/portfolios",
@@ -20,27 +20,38 @@ def create_portfolio(request: PortfolioCreateRequest):
     return result
 
 @router.get(
-    "/logs/{context_id}",
+    "/logs/{contextId}",
     response_model=PortfolioLogsResponse,
     summary="특정 context_id에 대한 포트폴리오 로그 조회"
 )
-def get_portfolio_logs_api(context_id: int):
-    logs = get_portfolio_logs(context_id)
+def get_portfolio_logs_api(contextId: int):
+    logs = get_portfolio_logs(contextId)
 
     if not logs:
         raise HTTPException(status_code=404, detail="해당 context_id에 대한 포트폴리오 로그데이터가 없습니다.")
 
     return {"data": logs}
 
-@router.post(
-    "/custom/{portfolio_id}",
+@router.put(
+    "/custom/{portfolioId}",
     response_model=CustomPortfolioResponse,
-    summary="사용자 커스텀 포트폴리오 생성 API"
+    summary="포트폴리오 사용자 커스텀 API"
 )
-def update_portfolio(portfolio_id: int, request: CustomPortfolioRequest):
-    success = update_custom_portfolio(portfolio_id, request)
+def update_portfolio(portfolioId: int, request: CustomPortfolioRequest):
+    success = update_custom_portfolio(portfolioId, request)
 
     if not success:
         raise HTTPException(status_code=500, detail="포트폴리오 업데이트 실패했습니다")
 
     return {"isSuccess": True}
+
+@router.post(
+    "/investment/{contextId}",
+    response_model=DecisionInvestmentResponse,
+    summary="모의 투자 결정 API"
+)
+def decision_investment(contextId: int):
+    response = decision_investment(contextId)
+    if not response:
+        raise HTTPException(status_code=500, detail="Failed to create portfolio and revision")
+    return response

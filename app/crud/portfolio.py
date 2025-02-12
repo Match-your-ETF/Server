@@ -1,7 +1,9 @@
 from app.db.connection import get_connection
 import json
-from app.schemas.portfolio import CustomPortfolioRequest, PortfolioResponse
+from fastapi import HTTPException
+from app.schemas.portfolio import *
 import decimal
+
 
 def convert_decimal_to_float(data):
     """딕셔너리 내부의 Decimal 값을 float으로 변환"""
@@ -143,6 +145,7 @@ def get_portfolio_logs(context_id: int):
         cursor.close()
         conn.close()
 
+
 def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
     """ 사용자가 직접 설정한 포트폴리오 정보를 업데이트 """
     conn = get_connection()
@@ -220,6 +223,48 @@ def update_custom_portfolio(portfolio_id: int, data: CustomPortfolioRequest):
         conn.rollback()
         print(f"DB 업데이트 오류: {e}")
         return False
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def decision_investment(context_id: int) -> DecisionInvestmentResponse:
+    """ 주어진 context_id를 유지하면서 새로운 portfolio와 revision을 생성 """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 새로운 portfolio 생성
+        cursor.execute("INSERT INTO portfolio (context_id, created_at, updated_at) VALUES (%s, NOW(), NOW())",
+                       (context_id,))
+        conn.commit()
+
+        # 새로 생성된 portfolio_id 가져오기
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        portfolio_id = cursor.fetchone()["LAST_INSERT_ID()"]
+
+        # 새로운 revision 생성
+        cursor.execute(
+            """
+            INSERT INTO revision (portfolio_id, etfs, market_indicators, user_indicators, ai_feedback, created_at, updated_at) 
+            VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+            """,
+            (portfolio_id, '{}', '{}', '{}', '{}')
+        )
+        conn.commit()
+
+        # 새로 생성된 revision_id 가져오기
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        revision_id = cursor.fetchone()["LAST_INSERT_ID()"]
+
+        # 반환할 응답 생성
+        return DecisionInvestmentResponse(portfolio_id=portfolio_id, revision_id=revision_id)
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[Error] Failed to create investment decision: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
     finally:
         cursor.close()
