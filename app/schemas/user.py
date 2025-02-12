@@ -14,3 +14,10 @@ class UserResponse(BaseModel):
     mbti_vector: str
     created_at: datetime
     updated_at: datetime
+
+class UserLog(BaseModel):
+    context_id: int
+    name: str
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
