@@ -24,3 +24,30 @@ def get_market_indicator_by_name(name: str):
         return market_data
     finally:
         connection.close()
+
+def get_market_indicators():
+    """ market_indicator 테이블의 모든 데이터를 조회 """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = """
+            SELECT market_indicator_id, name, interest_rate, inflation_rate, exchange_rate, created_at, updated_at
+            FROM market_indicator
+            ORDER BY market_indicator_id ASC
+        """
+        cursor.execute(query)
+        market_data = cursor.fetchall()
+
+        if not market_data:
+            return []
+
+        return market_data
+
+    except Exception as e:
+        print(f"DB 조회 오류: {e}")
+        return []
+
+    finally:
+        cursor.close()
+        conn.close()

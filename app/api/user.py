@@ -15,7 +15,7 @@ router = APIRouter(
 def create_user_api(user: UserCreate):
     user_id = create_user(user)
     if not user_id:
-        raise HTTPException(status_code=500, detail="Failed to create user")
+        raise HTTPException(status_code=500, detail="사용자를 생성하는데 실패했습니다.")
     created_user = get_user_by_id(user_id)
     return created_user
 
@@ -27,5 +27,5 @@ def create_user_api(user: UserCreate):
 def get_user_api(userId: int):
     user = get_user_by_id(userId)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="해당 사용자 정보가 없습니다.")
     return user

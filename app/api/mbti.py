@@ -15,5 +15,5 @@ router = APIRouter(
 def get_mbti_etfs_api(mbtiCode: str):
     mbti = get_mbti_etfs(mbtiCode)
     if not mbti:
-        raise HTTPException(status_code=404, detail="MBTI not found")
+        raise HTTPException(status_code=404, detail="해당 MBTI 데이터가 없습니다.")
     return mbti

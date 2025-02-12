@@ -15,5 +15,5 @@ router = APIRouter(
 def get_etf_api(ticker: str):
     etf = get_etf_by_ticker(ticker)
     if not etf:
-        raise HTTPException(status_code=404, detail="ETF not found")
+        raise HTTPException(status_code=404, detail="해당 ETF 데이터가 없습니다.")
     return etf
