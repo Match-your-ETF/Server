@@ -10,7 +10,7 @@ router = APIRouter(
 @router.get(
     "/{name}",
     response_model=MarketIndicatorResponse,
-    summary="시장 지표 조회"
+    summary="시장 지표 조회 API"
 )
 def get_market_indicator_api(name: str):
     market_data = get_market_indicator_by_name(name)
@@ -21,9 +21,9 @@ def get_market_indicator_api(name: str):
     return market_data
 
 @router.get(
-    "/",
+    "",
     response_model=MarketIndicatorsResponse,
-    summary="시장 지표 전체 조회")
+    summary="시장 지표 전체 조회 API")
 def get_markets_api():
     market_data = get_market_indicators()
 

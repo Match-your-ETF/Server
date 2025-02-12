@@ -10,7 +10,7 @@ router = APIRouter(
 @router.get(
     "/{mbtiCode}",
     response_model=MbtiResponse,
-    summary="MBTI 별 추천 ETF 조회"
+    summary="MBTI 별 추천 ETF 조회 API"
 )
 def get_mbti_etfs_api(mbtiCode: str):
     mbti = get_mbti_etfs(mbtiCode)

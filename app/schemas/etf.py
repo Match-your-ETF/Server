@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class ETFResponse(BaseModel):
@@ -18,3 +18,9 @@ class ETFResponse(BaseModel):
     mbti_code: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+class ETFItem(BaseModel):
+    ticker: str
+
+class SearchETFResponse(BaseModel):
+    data: List[ETFItem]

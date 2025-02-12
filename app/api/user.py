@@ -22,7 +22,7 @@ def get_user_api(userId: int):
 @router.get(
     "/mypage/logs",
     response_model=List[UserLog],
-    summary="사용자 context 리스트 조회"
+    summary="사용자 context 리스트 조회 API"
 )
 def get_user_logs_api(userId: int = Query(..., description="사용자 ID")):
     return get_user_logs(userId)
