@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from datetime import datetime
+from pydantic.types import Json
 from typing import Optional, List, Dict, Any
 
 class PortfolioCreateRequest(BaseModel):
@@ -48,8 +49,6 @@ class DecisionInvestmentResponse(BaseModel):
     portfolio_id: int
     revision_id: int
 
-
-## 최종 결정 DTO
 class DecisionPortfolioRequest(BaseModel):
     name: str
 
@@ -59,3 +58,7 @@ class DecisionPortfolioResponse(BaseModel):
     user_id: int
     created_at: datetime
     updated_at: datetime
+
+class FeedbackPortfolioResponse(BaseModel):
+    feedback: Json
+    ai_etfs: Json

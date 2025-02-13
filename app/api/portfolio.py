@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from app.ai.ai import generate_feedback
 from app.crud.portfolio import *
 from app.schemas.portfolio import *
 
@@ -71,3 +72,15 @@ def decision_portfolio_api(contextId: int, request: DecisionPortfolioRequest):
         raise HTTPException(status_code=404, detail="해당 context_id가 존재하지 않습니다.")
 
     return response
+
+@router.post(
+    "/{portfolioId}/feedback",
+    response_model=FeedbackPortfolioResponse,
+    summary="사용자 포트폴리오 피드백 생성 API"
+)
+def create_feedback_api(portfolioId: int, user_id: int = Query(..., alias="userId", description="사용자 ID")):
+    feedback, ai_etfs = generate_feedback(portfolioId, user_id)
+    if feedback is None:
+        raise HTTPException(status_code=404, detail="해당 feedback이 존재하지 않습니다.")
+
+    return FeedbackPortfolioResponse(feedback=feedback, ai_etfs=ai_etfs)
