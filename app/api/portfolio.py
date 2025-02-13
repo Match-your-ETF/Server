@@ -79,8 +79,13 @@ def decision_portfolio_api(contextId: int, request: DecisionPortfolioRequest):
     summary="사용자 포트폴리오 피드백 생성 API"
 )
 def create_feedback_api(portfolioId: int, user_id: int = Query(..., alias="userId", description="사용자 ID")):
-    feedback, ai_etfs = generate_feedback(portfolioId, user_id)
-    if feedback is None:
+    result = generate_feedback(portfolioId, user_id)
+    if result is None:
         raise HTTPException(status_code=404, detail="해당 feedback이 존재하지 않습니다.")
 
-    return FeedbackPortfolioResponse(feedback=feedback, ai_etfs=ai_etfs)
+    response = FeedbackPortfolioResponse(
+        feedback=result["feedback"],
+        ai_etfs=result["ai_etfs"]
+    )
+
+    return response
