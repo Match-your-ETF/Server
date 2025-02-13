@@ -1,4 +1,5 @@
 from app.db.connection import get_connection
+import pymysql
 
 def get_etf_by_ticker(ticker: str):
     conn = get_connection()
@@ -20,14 +21,15 @@ def search_etfs(keyword: str, limit: int = 6):
     """ETF 데이터를 LIKE 검색 후 반환"""
     connection = get_connection()
     try:
-        with connection.cursor() as cursor:
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
             sql = """
             SELECT ticker FROM etf
-            WHERE ticker LIKE %s 
+            WHERE LOWER(ticker) LIKE LOWER(%s)
             LIMIT %s
             """
             cursor.execute(sql, (f"%{keyword}%", limit))
             results = cursor.fetchall()
+
     except Exception as e:
         print(f"DB 검색 오류: {e}")
         results = []

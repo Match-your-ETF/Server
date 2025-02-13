@@ -8,7 +8,7 @@ router = APIRouter(
 )
 
 @router.get(
-    "/{ticker}",
+    "/detail/{ticker}",
         response_model=ETFResponse,
         summary="개별 ETF 상세 정보 조회 API"
 )
