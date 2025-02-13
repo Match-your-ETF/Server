@@ -361,18 +361,21 @@ def generate_feedback(portfolio_id, user_id):
     )
 
     message = response.choices[0].message
+    # print(message)
     # 최종 피드백 텍스트 반환 (message.content에 피드백이 포함되어 있습니다)
     feedback_text = message.content
-    return feedback_text, ai_etf_recommendation
-
+    result = {
+        "feedback": feedback_text,
+        "ai_etfs": ai_etf_recommendation
+    }
+    return json.dumps(result, ensure_ascii=False, indent=4)  # 한글 깨짐 방지 및 가독성 추가
 
 # --- 실행 테스트 ---
 if __name__ == "__main__":
     # 예시: portfolio_id 1 (유저1의 첫 포트폴리오), user_id 1
     portfolio_id = "1"
     user_id = "1"
-    feedback, ai_etfs = generate_feedback(portfolio_id, user_id)
+    test_result = generate_feedback(portfolio_id, user_id)
     print("AI 투자 피드백:")
-    print(feedback)
-    print("\nAI 추천 ETF 리스트:")
-    print(ai_etfs)
+    print(test_result)
+
