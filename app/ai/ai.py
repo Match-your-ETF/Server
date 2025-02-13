@@ -250,6 +250,12 @@ def generate_feedback(portfolio_id, user_id):
 
     # AI 기반 추가 ETF 추천
     ai_etf_recommendation = ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendation)
+    # AI 추천 ETF 리스트가 비어있으면 에러 처리
+    if not ai_etf_recommendation:
+        return json.dumps({"error": "AI 추천 ETF를 생성할 수 없습니다."}, ensure_ascii=False)
+
+    # AI 추천 ETF의 비중을 할당하는 API 호출
+    ai_etfs_with_allocation = get_allocation_for_etfs(ai_etf_recommendation)
 
     # 함수 호출에 전달할 payload 구성 (티커 정보만 사용)
     function_payload = {
@@ -364,11 +370,57 @@ def generate_feedback(portfolio_id, user_id):
     # print(message)
     # 최종 피드백 텍스트 반환 (message.content에 피드백이 포함되어 있습니다)
     feedback_text = message.content
-    result = {
-        "feedback": feedback_text,
-        "ai_etfs": ai_etf_recommendation
-    }
-    return json.dumps(result, ensure_ascii=False, indent=4)  # 한글 깨짐 방지 및 가독성 추가
+    # result = {
+    #     "feedback": feedback_text,
+    #     "ai_etfs": ai_etf_recommendation,
+    #     # "ai_etfs":ai_etfs_with_allocation
+    # }
+    return feedback_text, ai_etf_recommendation
+
+    #AI3. 비중 함수
+
+
+def get_allocation_for_etfs(etfs):
+    """
+    AI에게 ETF 리스트를 전달하여 최적의 비중을 추천받는 함수.
+    """
+    prompt = f"""
+    You are a financial portfolio optimizer.
+    Given the following ETFs: {etfs}, allocate them into a portfolio where the total allocation sums to exactly 100%.
+    Ensure diversification and risk management.
+
+    Return only a JSON array with the format:
+    [
+        {{"etf": "VOO", "allocation": 40}},
+        {{"etf": "QQQ", "allocation": 35}},
+        {{"etf": "ARKK", "allocation": 25}}
+    ]
+    Do not include any explanations.
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a financial portfolio optimizer."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    content = response.choices[0].message.content.strip()
+    try:
+        recommended_allocation = json.loads(content)
+        total_allocation = sum(etf["allocation"] for etf in recommended_allocation)
+
+        # 총 합이 100%인지 확인
+        if total_allocation != 100:
+            print("Warning: AI allocation sum is not 100%. Adjusting...")
+            recommended_allocation = normalize_allocation(recommended_allocation)
+
+        return recommended_allocation
+    except Exception as e:
+        print("Error parsing AI allocation recommendation:", e)
+        return []
+
 
 # --- 실행 테스트 ---
 if __name__ == "__main__":
