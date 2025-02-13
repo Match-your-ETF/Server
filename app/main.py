@@ -17,7 +17,8 @@ app = FastAPI(
     description="TABA 4조",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    root_path="/"
 )
 
 origins = [
