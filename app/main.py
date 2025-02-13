@@ -35,7 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
+@app.head("/")
 def read_root():
     return {"message": "Hello, FastAPI is running!"}
 
