@@ -60,5 +60,4 @@ class DecisionPortfolioResponse(BaseModel):
     updated_at: datetime
 
 class FeedbackPortfolioResponse(BaseModel):
-    feedback: Json
-    ai_etfs: Json
+    result: Json

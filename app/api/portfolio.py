@@ -89,9 +89,5 @@ def create_feedback_api(portfolioId: int, user_id: int = Query(..., alias="userI
     if not result:
         raise HTTPException(status_code=404, detail="해당 portfolio_id가 존재하지 않습니다.")
 
-    response = FeedbackPortfolioResponse(
-        feedback=result["feedback"],
-        ai_etfs=result["ai_etfs"]
-    )
-
+    response = FeedbackPortfolioResponse(**result)
     return response
