@@ -34,6 +34,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {"message": "Hello, FastAPI is running!"}
+
 # 라우터 등록
 app.include_router(user_router)
 app.include_router(etf_router)
