@@ -80,8 +80,14 @@ def decision_portfolio_api(contextId: int, request: DecisionPortfolioRequest):
 )
 def create_feedback_api(portfolioId: int, user_id: int = Query(..., alias="userId", description="사용자 ID")):
     result = generate_feedback(portfolioId, user_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail="해당 feedback이 존재하지 않습니다.")
+
+    try:
+        result = json.loads(result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="피드백 생성 결과가 올바른 JSON이 아닙니다.")
+
+    if not result:
+        raise HTTPException(status_code=404, detail="해당 portfolio_id가 존재하지 않습니다.")
 
     response = FeedbackPortfolioResponse(
         feedback=result["feedback"],
