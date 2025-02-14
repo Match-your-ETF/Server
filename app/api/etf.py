@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from app.schemas.etf import *
 from app.crud.etf import *
+from app.ai.embed import query_recommend_etfs
 
 router = APIRouter(
     prefix="/etfs",
@@ -26,3 +27,12 @@ def get_etf_api(ticker: str):
 def search_etfs_api(keyword: str = Query(..., description="검색할 키워드")):
     results = search_etfs(keyword)
     return {"data": results}
+
+@router.post(
+    "/recommendation",
+    response_model=RecommendETFListResponse,
+    summary="(자연어) 추천 ETF 리스트 조회 API"
+)
+def recommend_etfs_api(query: str = Query(..., description="사용자 쿼리")):
+    results = query_recommend_etfs(query)
+    return RecommendETFListResponse(recommendations=results)

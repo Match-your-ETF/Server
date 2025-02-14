@@ -24,3 +24,11 @@ class ETFItem(BaseModel):
 
 class SearchETFResponse(BaseModel):
     data: List[ETFItem]
+
+class ETFRecommendation(BaseModel):
+    ticker: str
+    category: str
+    summary: str
+
+class RecommendETFListResponse(BaseModel):
+    recommendations: List[ETFRecommendation]
