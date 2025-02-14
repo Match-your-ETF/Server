@@ -34,4 +34,4 @@ class RecommendETFListResponse(BaseModel):
     recommendations: List[ETFRecommendation]
 
 class RecommendInitialETFResponse(BaseModel):
-    etfs: str
+    etfs: List[str]
