@@ -6,21 +6,22 @@ import os
 import json
 from pathlib import Path
 from dotenv import load_dotenv
+from app.ai.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, GPT_API_KEY, openai
 
 # 현재 파일의 두 단계 위에 위치한 .env 파일 경로 설정
-env_path = Path(__file__).resolve().parents[2] / ".env"
-load_dotenv(dotenv_path=env_path)
-
-# 환경변수에서 GPT API 키 등 읽기
-DB_HOST = os.getenv('DB_HOST')
-DB_USER = os.getenv('DB_USER')
-DB_PASSWORD = os.getenv('DB_PASSWORD')
-DB_NAME = os.getenv('DB_NAME')
-gpt_api_key = os.getenv('GPT_API_KEY')
-
-# openai 설정
-openai.api_key = gpt_api_key
-client = openai.OpenAI(api_key=openai.api_key)
+# env_path = Path(__file__).resolve().parents[2] / ".env"
+# load_dotenv(dotenv_path=env_path)
+#
+# # 환경변수에서 GPT API 키 등 읽기
+# DB_HOST = os.getenv('DB_HOST')
+# DB_USER = os.getenv('DB_USER')
+# DB_PASSWORD = os.getenv('DB_PASSWORD')
+# DB_NAME = os.getenv('DB_NAME')
+# gpt_api_key = os.getenv('GPT_API_KEY')
+#
+# # openai 설정
+# openai.api_key = gpt_api_key
+# client = openai.OpenAI(api_key=openai.api_key)
 
 # --- DB 함수 정의 ---
 #1. user정보 조회
