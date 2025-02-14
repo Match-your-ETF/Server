@@ -172,6 +172,17 @@ def recommend_etfs(target_vector, etf_data, mode="target"):
     recommended = etf_data.sort_values(by="distance").head(5)
     return recommended
 
+#8. 비중 조정 함수
+def normalize_allocation(allocation_list):
+    """
+    주어진 allocation_list의 각 항목의 allocation이 전체 100이 되도록 정규화합니다.
+    예시: [{"etf": "VOO", "allocation": 38}, {"etf": "QQQ", "allocation": 42}, {"etf": "ARKK", "allocation": 20}]
+    """
+    total = sum(item["allocation"] for item in allocation_list)
+    if total == 0:
+        return allocation_list
+    return [{"etf": item["etf"], "allocation": round(item["allocation"] / total * 100, 2)}
+            for item in allocation_list]
 
 # --- 인공지능 함수 ---
 def ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendation):
@@ -214,15 +225,13 @@ def ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendatio
         print("Error parsing AI recommendation:", e)
         return []
 
-
+#AI2. 피드백 생성 함수
 def generate_feedback(portfolio_id, user_id):
     """
-    portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백을 생성.
-    사용자 정보, 시장 지표, MBTI 추천, 그리고 두 방식의 ETF 추천 정보를 종합하여
-    AI 투자 피드백을 생성합니다.
-    피드백 생성 후, 필요시 새 revision 기록을 생성하는 흐름으로 확장할 수 있습니다.
+    portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백을 생성하고,
+    재조정된 ETF 비중 정보와 함께, 현재 사용자가 보유한 ETF 정보(current_etfs)를 인자로 전달하여
+    추천이 이를 반영하도록 합니다.
     """
-
     # 사용자 정보 조회
     user_info = fetch_user_info(user_id)
     if not user_info:
@@ -232,37 +241,39 @@ def generate_feedback(portfolio_id, user_id):
     revision_data = fetch_revision_by_portfolio(portfolio_id)
     if not revision_data:
         return "포트폴리오 데이터가 없습니다.", []
-    # ETF 데이터 조회
     etf_data = fetch_etf_data()
 
-    # 포트폴리오의 PCA 벡터 계산
     portfolio_pc_vector = get_portfolio_pc_vector(revision_data)
-    # 성향 기반 추천 ETF (유클리드 거리 기준)
     target_vector = np.array(user_info.get("mbti_vector"))
     preference_etfs = recommend_etfs(target_vector, etf_data)
 
-    # 시장 지표: revision 데이터에 저장된 market_indicators 활용 (없으면 기본값)
     market_conditions = revision_data.get("market_indicators",
                                           {"interest_rate": 1.50, "inflation_rate": 1.00, "exchange_rate": 1300.0})
-
-    # MBTI 추천 ETF: mbti 테이블에서 조회
     mbti_recommendation = fetch_mbti_recommendation(user_info.get("mbti_code"))
 
-    # AI 기반 추가 ETF 추천
+    # AI 기반 추가 ETF 추천 (여기서는 단순히 텍스트로 된 ETF 리스트를 반환)
     ai_etf_recommendation = ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendation)
-    # AI 추천 ETF 리스트가 비어있으면 에러 처리
     if not ai_etf_recommendation:
         return json.dumps({"error": "AI 추천 ETF를 생성할 수 없습니다."}, ensure_ascii=False)
 
-    # AI 추천 ETF의 비중을 할당하는 API 호출
-    ai_etfs_with_allocation = get_allocation_for_etfs(ai_etf_recommendation)
+    # 기존 revision 데이터의 ETF 정보는 "current_etfs"로 전달
+    current_etfs = revision_data.get("etfs", {})
+    if isinstance(current_etfs, dict):
+        current_etfs = current_etfs.get("etfs", [])
 
-    # 함수 호출에 전달할 payload 구성 (티커 정보만 사용)
+    # 기존 revision ETF와 AI 추천 ETF를 합산하여 전체 포트폴리오의 비중을 재조정
+    rebalanced_allocation = get_allocation_with_revision_rebalance(
+        recommended_etfs=ai_etf_recommendation,
+        revision_etfs=revision_data.get("etfs", {})
+    )
+
+    # analyze_portfolio 함수에 전달할 payload 구성
     function_payload = {
         "portfolio_pc_vector": portfolio_pc_vector.tolist(),
         "target_pc_vector": target_vector.tolist(),
         "preference_etfs": preference_etfs[["ticker"]].to_dict(orient="list"),
         "mbti_recommendation_etfs": mbti_recommendation,
+        "current_etfs": current_etfs,  # 현재 사용자가 보유한 ETF 정보 추가
         "user_info": {
             "name": user_info.get("name"),
             "age": user_info.get("age"),
@@ -290,7 +301,7 @@ def generate_feedback(portfolio_id, user_id):
     3. 위험 요소 (글머리 기호로 1-2개)
     4. 조언 (단기/장기)
     5. 추천 ETF
- 
+
     포트폴리오 평가 및 투자 피드백은 자유로운 텍스트 형식으로 작성해 주세요.
     """
 
@@ -305,7 +316,7 @@ def generate_feedback(portfolio_id, user_id):
         functions=[
             {
                 "name": "analyze_portfolio",
-                "description": "Analyze ETF portfolio data and generate feedback including ETF recommendations, considering user profile, market conditions, and MBTI based suggestions.",
+                "description": "Analyze ETF portfolio data and generate feedback including ETF recommendations, considering the user's profile, market conditions, MBTI based suggestions, and current ETF holdings.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -339,6 +350,18 @@ def generate_feedback(portfolio_id, user_id):
                             "items": {"type": "string"},
                             "description": "ETF tickers recommended based on the user's MBTI profile."
                         },
+                        "current_etfs": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "ticker": {"type": "string"},
+                                    "allocation": {"type": "number"}
+                                },
+                                "required": ["ticker", "allocation"]
+                            },
+                            "description": "List of ETFs currently held by the user from revision data."
+                        },
                         "user_info": {
                             "type": "object",
                             "properties": {
@@ -367,35 +390,43 @@ def generate_feedback(portfolio_id, user_id):
     )
 
     message = response.choices[0].message
-    # print(message)
-    # 최종 피드백 텍스트 반환 (message.content에 피드백이 포함되어 있습니다)
     feedback_text = message.content
-    # result = {
-    #     "feedback": feedback_text,
-    #     "ai_etfs": ai_etf_recommendation,
-    #     # "ai_etfs":ai_etfs_with_allocation
-    # }
-    return feedback_text, ai_etf_recommendation
+    if not feedback_text:
+        if "function_call" in message and "arguments" in message["function_call"]:
+            try:
+                func_args = json.loads(message["function_call"]["arguments"])
+                feedback_text = func_args.get("feedback", "피드백 정보가 제공되지 않았습니다.")
+            except Exception as e:
+                print("function_call arguments 파싱 에러:", e)
+                feedback_text = "피드백 정보를 파싱할 수 없습니다."
+        else:
+            feedback_text = "피드백 정보가 제공되지 않았습니다."
 
-    #AI3. 비중 함수
+    return feedback_text, rebalanced_allocation
 
-
+#AI3. 신규 ETF 비중 함수
 def get_allocation_for_etfs(etfs):
     """
-    AI에게 ETF 리스트를 전달하여 최적의 비중을 추천받는 함수.
+    AI에게 ETF 리스트를 전달하여, 각 ETF에 대한 추천 비중을 산출합니다.
+    입력된 ETF 리스트에 대해 전체 할당이 100%가 되도록 배분하며,
+    결과는 반드시 [{"ticker": "VOO", "allocation": 40}, ...] 형태의 JSON 배열로만 반환되어야 합니다.
     """
     prompt = f"""
     You are a financial portfolio optimizer.
-    Given the following ETFs: {etfs}, allocate them into a portfolio where the total allocation sums to exactly 100%.
-    Ensure diversification and risk management.
+    Given the following ETFs: {etfs},
+    please allocate them into a portfolio so that the total allocation sums to exactly 100%.
+    Ensure you consider diversification and risk management.
 
-    Return only a JSON array with the format:
+    Return only a JSON array where each element is an object with exactly two keys:
+      "ticker": a string representing the ETF ticker,
+      "allocation": a number representing the percentage allocation.
+    For example:
     [
-        {{"etf": "VOO", "allocation": 40}},
-        {{"etf": "QQQ", "allocation": 35}},
-        {{"etf": "ARKK", "allocation": 25}}
+        {{"ticker": "VOO", "allocation": 40}},
+        {{"ticker": "QQQ", "allocation": 35}},
+        {{"ticker": "ARKK", "allocation": 25}}
     ]
-    Do not include any explanations.
+    Do not include any explanations or additional text.
     """
 
     response = client.chat.completions.create(
@@ -407,11 +438,20 @@ def get_allocation_for_etfs(etfs):
     )
 
     content = response.choices[0].message.content.strip()
+
+    # Markdown 코드 블록 제거 (예: ```json ... ```)
+    if content.startswith("```"):
+        lines = content.splitlines()
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        content = "\n".join(lines).strip()
+
     try:
         recommended_allocation = json.loads(content)
-        total_allocation = sum(etf["allocation"] for etf in recommended_allocation)
+        total_allocation = sum(item["allocation"] for item in recommended_allocation)
 
-        # 총 합이 100%인지 확인
         if total_allocation != 100:
             print("Warning: AI allocation sum is not 100%. Adjusting...")
             recommended_allocation = normalize_allocation(recommended_allocation)
@@ -421,13 +461,75 @@ def get_allocation_for_etfs(etfs):
         print("Error parsing AI allocation recommendation:", e)
         return []
 
+#AI4. 병합 ETF 비중함수
+def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, existing_weight_ratio=0.7):
+    """
+    기존 revision의 ETF 할당과 AI 추천 ETF 리스트를 기반으로 전체 비중을 재조정하는 함수.
+
+    매개변수:
+      recommended_etfs (list): AI 추천 ETF 티커 리스트 (예: ["VOO", "QQQ", "ARKK"]).
+      revision_etfs (str 또는 dict): 기존 revision의 ETF 정보.
+          형식은 {"etfs": [{"ticker": "SPY", "allocation": 40}, ...]}.
+      existing_weight_ratio (float): 전체 포트폴리오에서 기존 ETF에 할당할 비율 (0과 1 사이).
+         기본값은 0.7 (70%).
+
+    반환:
+      전체 포트폴리오 ETF 비중 리스트 (예: [{"ticker": "VOO", "allocation": 35}, {"ticker": "QQQ", "allocation": 25}, {"ticker": "ARKK", "allocation": 40}]).
+    """
+    # revision_etfs가 문자열이면 JSON 파싱
+    if isinstance(revision_etfs, str):
+        try:
+            revision_etfs = json.loads(revision_etfs)
+        except Exception as e:
+            print("기존 revision etfs 파싱 실패:", e)
+            revision_etfs = {}
+
+    # 기존 ETF 할당 정보를 딕셔너리로 추출 (ticker: allocation)
+    existing_allocations = {}
+    if revision_etfs and "etfs" in revision_etfs:
+        for item in revision_etfs["etfs"]:
+            ticker = item.get("ticker")
+            allocation = item.get("allocation", 0)
+            if ticker:
+                existing_allocations[ticker] = allocation
+
+    # 추천 ETF 리스트 중 기존에 없는 신규 ETF 도출
+    new_etfs = [etf for etf in recommended_etfs if etf not in existing_allocations]
+
+    # 기존 ETF의 전체 할당 합이 이미 100에 가깝다고 가정하고, 이를 지정된 비율 (예: 70%)로 낮춥니다.
+    total_existing = sum(existing_allocations.values())
+    rebalanced_existing = []
+    if total_existing > 0:
+        for ticker, alloc in existing_allocations.items():
+            new_alloc = round(alloc / total_existing * (existing_weight_ratio * 100), 2)
+            rebalanced_existing.append({"ticker": ticker, "allocation": new_alloc})
+
+    # 신규 ETF에 대해서는 AI 추천 비중을 받되, 전체에서 (1 - existing_weight_ratio)%를 할당합니다.
+    rebalanced_new = []
+    if new_etfs:
+        new_allocations = get_allocation_for_etfs(new_etfs)
+        total_new_alloc = sum(item["allocation"] for item in new_allocations) if new_allocations else 0
+        if total_new_alloc > 0:
+            for item in new_allocations:
+                new_alloc = round(item["allocation"] / total_new_alloc * ((1 - existing_weight_ratio) * 100), 2)
+                rebalanced_new.append({"ticker": item["ticker"], "allocation": new_alloc})
+
+    # 기존 ETF와 신규 ETF 비중을 병합
+    merged_allocations = rebalanced_existing + rebalanced_new
+
+    # 전체 합이 100이 되도록 정규화
+    total = sum(item["allocation"] for item in merged_allocations)
+    if total != 100:
+        merged_allocations = normalize_allocation(merged_allocations)
+
+    return merged_allocations
 
 # --- 실행 테스트 ---
 if __name__ == "__main__":
-    # 예시: portfolio_id 1 (유저1의 첫 포트폴리오), user_id 1
-    portfolio_id = "1"
+    portfolio_id = "1"  # 예시: 유저1의 첫 포트폴리오
     user_id = "1"
-    test_result = generate_feedback(portfolio_id, user_id)
+    feedback_text, allocation_info = generate_feedback(portfolio_id, user_id)
     print("AI 투자 피드백:")
-    print(test_result)
-
+    print(feedback_text)
+    print("\n재조정된 포트폴리오 비중 정보:")
+    print(allocation_info)
