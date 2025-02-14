@@ -61,4 +61,4 @@ class DecisionPortfolioResponse(BaseModel):
 
 class FeedbackPortfolioResponse(BaseModel):
     feedback: str
-    ai_etfs: str
+    ai_etfs: List[str]
