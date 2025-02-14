@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 class PortfolioCreateRequest(BaseModel):
     user_id: int
     mbti_code: str
+    mbti_vector: str
 
 class PortfolioResponse(BaseModel):
     context_id: int

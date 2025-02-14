@@ -14,8 +14,7 @@ def convert_decimal_to_float(data):
         return [convert_decimal_to_float(i) for i in data]
     return data
 
-
-def create_portfolio_with_context(user_id: int, mbti_code: str):
+def create_portfolio_with_context(user_id: int, mbti_code: str, mbti_vector: str):
     """
     1. context 생성 후 ID 가져오기
     2. portfolio 생성
@@ -26,6 +25,12 @@ def create_portfolio_with_context(user_id: int, mbti_code: str):
     cursor = conn.cursor()
 
     try:
+        cursor.execute(
+            "UPDATE user SET mbti_vector = %s WHERE user_id = %s",
+            (mbti_vector, user_id)
+        )
+        conn.commit()
+
         # context 테이블에 새로운 행 추가
         cursor.execute("INSERT INTO context (user_id, name) VALUES (%s, %s)", (user_id, None))
         conn.commit()

@@ -14,7 +14,7 @@ router = APIRouter(
     summary="MBTI 기반 기본 추천 정보 생성/조회 API"
 )
 def create_portfolio_api(request: PortfolioCreateRequest):
-    result = create_portfolio_with_context(request.user_id, request.mbti_code)
+    result = create_portfolio_with_context(request.user_id, request.mbti_code, request.mbti_vector)
 
     if result is None:
         raise HTTPException(status_code=404, detail="MBTI 코드가 존재하지 않습니다.")
