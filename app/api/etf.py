@@ -29,7 +29,7 @@ def search_etfs_api(keyword: str = Query(..., description="검색할 키워드")
     results = search_etfs(keyword)
     return {"data": results}
 
-@router.post(
+@router.get(
     "/recommendation",
     response_model=RecommendETFListResponse,
     summary="(자연어) 추천 ETF 리스트 조회 API"
