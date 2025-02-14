@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
-import openai
 import pymysql
-import os
+# import openai
+# import os
 import json
-from pathlib import Path
-from dotenv import load_dotenv
+# from pathlib import Path
+# from dotenv import load_dotenv
 from app.ai.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, client
 
 # --- DB 함수 정의 ---
@@ -59,24 +59,6 @@ def fetch_revision_by_portfolio(portfolio_id):
         "user_indicators": row["user_indicators"],
         "ai_feedback": row["ai_feedback"]
     }
-
-#3. u_id로 mbti벡터 찾기
-def fetch_user_target_vector(user_id):
-    """user 테이블에서 mbti_vector를 불러와 NumPy 배열로 변환"""
-    connection = pymysql.connect(
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME
-    )
-    query = "SELECT mbti_vector FROM user WHERE user_id = %s"
-    target_data = pd.read_sql(query, connection, params=[user_id])
-    connection.close()
-
-    if target_data.empty:
-        return np.zeros(4)
-    vector_str = target_data.iloc[0]["mbti_vector"]
-    return np.fromstring(vector_str.strip("[]"), sep=',')
 
 #4. etf_data 반환
 def fetch_etf_data():
@@ -142,8 +124,8 @@ def get_portfolio_pc_vector(revision_data):
     mean_alloc = np.mean(allocations) if allocations else 0
     return np.array([mean_alloc] * 4)
 
-#7. etf들 추천함수
-def recommend_etfs(target_vector, etf_data, mode="target"):
+#7. 유클리드 거리 기반 추천함수
+def euclid_etfs(target_vector, etf_data, nums=5, mode="target"):
     """
     유저의 target_vector와 etf_data의 mbti_vector 간의 유클리드 거리를 계산하여,
     가장 유사한 ETF를 상위 5개 추천합니다.
@@ -155,7 +137,7 @@ def recommend_etfs(target_vector, etf_data, mode="target"):
 
     etf_data = etf_data.copy()
     etf_data["distance"] = etf_data["mbti_vector"].apply(euclidean_distance)
-    recommended = etf_data.sort_values(by="distance").head(5)
+    recommended = etf_data.sort_values(by="distance").head(nums)
     return recommended
 
 #8. 비중 조정 함수
@@ -231,7 +213,7 @@ def generate_feedback(portfolio_id, user_id):
 
     portfolio_pc_vector = get_portfolio_pc_vector(revision_data)
     target_vector = np.array(user_info.get("mbti_vector"))
-    preference_etfs = recommend_etfs(target_vector, etf_data)
+    preference_etfs = euclid_etfs(target_vector, etf_data)
 
     market_conditions = revision_data.get("market_indicators",
                                           {"interest_rate": 1.50, "inflation_rate": 1.00, "exchange_rate": 1300.0})
