@@ -16,3 +16,4 @@ GPT_API_KEY = os.getenv('GPT_API_KEY')
 
 # OpenAI 설정
 openai.api_key = GPT_API_KEY
+client = openai.OpenAI(api_key=GPT_API_KEY)
