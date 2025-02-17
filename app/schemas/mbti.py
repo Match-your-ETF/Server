@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class MbtiResponse(BaseModel):
+    description: str
     etf1: Optional[str]
     allocation1: Optional[int]
     etf2: Optional[str]

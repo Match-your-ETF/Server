@@ -6,7 +6,7 @@ def get_mbti_etfs(mbtiCode: str):
         with connection.cursor() as cursor:
             sql = """
                 SELECT 
-                    etf1, allocation1, etf2, allocation2, etf3, allocation3, 
+                    description, etf1, allocation1, etf2, allocation2, etf3, allocation3, 
                        etf4, allocation4, etf5, allocation5
                 FROM mbti
                 WHERE mbti_code = %s
