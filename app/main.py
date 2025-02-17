@@ -23,7 +23,7 @@ app = FastAPI(
 
 origins = [
     "http://localhost:5173",
-    WEB_URL,
+    "https://www.myetf.shop",
     API_URL
 ]
 
