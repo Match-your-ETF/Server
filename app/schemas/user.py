@@ -17,7 +17,7 @@ class UserResponse(BaseModel):
 
 class UserLog(BaseModel):
     context_id: int
-    name: str
+    name: Optional[str] = None
     user_id: int
     created_at: datetime
     updated_at: datetime
