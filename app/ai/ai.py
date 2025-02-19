@@ -146,10 +146,11 @@ def normalize_allocation(allocation_list):
     주어진 allocation_list의 각 항목의 allocation이 전체 100이 되도록 정규화합니다.
     예시: [{"etf": "VOO", "allocation": 38}, {"etf": "QQQ", "allocation": 42}, {"etf": "ARKK", "allocation": 20}]
     """
+    #print('::얼로케이션::',allocation_list,':::디버그::') #얼로케이션 함수에서 etf키를 ticker로 고쳐보기
     total = sum(item["allocation"] for item in allocation_list)
     if total == 0:
         return allocation_list
-    return [{"etf": item["etf"], "allocation": round(item["allocation"] / total * 100, 2)}
+    return [{"ticker": item["ticker"], "allocation": round(item["allocation"] / total * 100, 2)}
             for item in allocation_list]
 
 # --- 인공지능 함수 ---
@@ -484,7 +485,7 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 
     # 기존 ETF와 신규 ETF 비중을 병합
     merged_allocations = rebalanced_existing + rebalanced_new
-
+    print(merged_allocations,"디버그용") #디버그용 프린트
     # 전체 합이 100이 되도록 정규화
     total = sum(item["allocation"] for item in merged_allocations)
     if total != 100:
@@ -494,7 +495,7 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 
 # --- 실행 테스트 ---
 if __name__ == "__main__":
-    portfolio_id = "1"  # 예시: 유저1의 첫 포트폴리오
+    portfolio_id = "102"  # 예시: 유저1의 첫 포트폴리오
     user_id = "1"
     feedback_text, allocation_info = generate_feedback(portfolio_id, user_id)
     print("AI 투자 피드백:")
