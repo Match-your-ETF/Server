@@ -492,7 +492,7 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 
     # 기존 ETF와 신규 ETF 비중을 병합
     merged_allocations = rebalanced_existing + rebalanced_new
-    print(merged_allocations,"디버그용") #디버그용 프린트
+    print(merged_allocations,"디버그용") #todo : 병합계산식 디버그 필요
     # 전체 합이 100이 되도록 정규화
     total = sum(item["allocation"] for item in merged_allocations)
     if total != 100:
@@ -509,6 +509,7 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
     - user_indicators: 사용자 지표 (예: user_info)
     - ai_feedback: AI 피드백 텍스트
     """
+    print(':::update_revision_data 함수가 호출되었습니다.:::')
     try:
         connection = pymysql.connect(
             host=DB_HOST,
