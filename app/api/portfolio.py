@@ -29,10 +29,10 @@ def create_portfolio_api(request: PortfolioCreateRequest):
 def get_portfolio_logs_api(contextId: int):
     logs = get_portfolio_logs(contextId)
 
-    if not logs:
+    if logs.name is None and not logs.data:
         raise HTTPException(status_code=404, detail="해당 context_id에 대한 포트폴리오 로그 데이터가 없습니다.")
 
-    return {"data": logs}
+    return logs
 
 @router.put(
     "/{portfolioId}/custom",

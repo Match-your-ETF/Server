@@ -31,6 +31,7 @@ class PortfolioLog(BaseModel):
     ai_feedback: dict
 
 class PortfolioLogsResponse(BaseModel):
+    name: Optional[str] = None
     data: List[PortfolioLog]
 
 class CustomPortfolioRequest(BaseModel):

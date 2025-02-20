@@ -1,8 +1,8 @@
 from app.db.connection import get_connection
+from fastapi import HTTPException
 import json
 import decimal
 from app.schemas.portfolio import *
-
 
 def convert_decimal_to_float(data):
     """딕셔너리 내부의 Decimal 값을 float으로 변환"""
@@ -87,20 +87,28 @@ def create_portfolio_with_context(user_id: int, mbti_code: str, mbti_vector: str
         cursor.close()
         conn.close()
 
-def get_portfolio_logs(context_id: int):
-    """ 특정 context_id에 속한 모든 포트폴리오의 revision 로그 조회 """
+def get_portfolio_logs(context_id: int) -> PortfolioLogsResponse:
+    """ 특정 context_id에 속한 모든 포트폴리오의 revision 로그 조회 및 context name 포함 """
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
+        # context 테이블에서 name 조회
+        cursor.execute("SELECT name FROM context WHERE context_id = %s", (context_id,))
+        context_row = cursor.fetchone()
+
+        if not context_row:
+            raise HTTPException(status_code=404, detail=f"해당 context_id에 대한 포트폴리오 로그 데이터가 없습니다.")
+
+        context_name = context_row.get("name") if context_row else None
+
         # context_id에 해당하는 portfolio_id 목록 조회
-        query = "SELECT portfolio_id FROM portfolio WHERE context_id = %s"
-        cursor.execute(query, (context_id,))
-        portfolio_ids = [row["portfolio_id"] for row in cursor.fetchall()]
+        cursor.execute("SELECT portfolio_id FROM portfolio WHERE context_id = %s", (context_id,))
+        rows = cursor.fetchall()
+        portfolio_ids = [row["portfolio_id"] if isinstance(row, dict) else row[0] for row in rows]
 
         if not portfolio_ids:
-            print(f"No portfolios found for context_id={context_id}")
-            return []
+            return PortfolioLogsResponse(name=context_name, data=[])
 
         print(f"Found portfolio_ids: {portfolio_ids}")
 
@@ -114,12 +122,7 @@ def get_portfolio_logs(context_id: int):
         cursor.execute(query, portfolio_ids)
         logs = cursor.fetchall()
 
-        print(f"Fetched logs: {logs}")
-
-        if not logs:
-            return []
-
-        # JSON 변환 후 반환
+        # JSON 변환 후 데이터 리스트 생성
         result = []
         for log in logs:
             result.append({
@@ -131,11 +134,11 @@ def get_portfolio_logs(context_id: int):
                 "ai_feedback": json.loads(log["ai_feedback"]),
             })
 
-        return result
+        return PortfolioLogsResponse(name=context_name, data=result)
 
     except Exception as e:
-        print(f"DB 조회 오류: {e}")
-        return []
+        print(f"DB 조회 오류: {e}")  # 기존 코드
+        return PortfolioLogsResponse(name=None, data=[])
 
     finally:
         cursor.close()
