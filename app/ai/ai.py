@@ -256,7 +256,7 @@ def generate_feedback(portfolio_id, user_id):
 
     prompt = """
     You are WISE (Wealth Investment Strategic Expert), an AI investment advisor specializing in ETF portfolio analysis and optimization.
-    Your role is to provide personalized, actionable advice based on the investor's portfolio data, market conditions, and profile details.
+    Your role is to provide personalized, actionable advice based on the Korean investor's portfolio data, market conditions, and profile details.
 
     Please analyze the following aspects:
     1. Overall asset allocation strategy
@@ -370,7 +370,14 @@ def generate_feedback(portfolio_id, user_id):
                 feedback_text = "피드백 정보를 파싱할 수 없습니다."
         else:
             feedback_text = "피드백 정보가 제공되지 않았습니다."
-
+        # TODO: 리비전 데이터 - etfs, market_indicators, user_indicators 및 ai_feedback 업데이트
+        update_revision_data(
+            portfolio_id,
+            rebalanced_allocation,
+            market_conditions,
+            user_info,
+            feedback_text
+        )
     return feedback_text, rebalanced_allocation
 
 #AI3. 신규 ETF 비중 함수
@@ -492,6 +499,60 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
         merged_allocations = normalize_allocation(merged_allocations)
 
     return merged_allocations
+
+#AI5. 리비전 데이터 업데이트 함수
+def update_revision_data(portfolio_id, merged_allocations, market_indicators, user_indicators, ai_feedback):
+    """
+    주어진 portfolio_id에 대해 최신 revision 행을 업데이트합니다.
+    - etfs: AI 재조정 ETF 비중 (merged_allocations)
+    - market_indicators: 시장 지표 (예: market_conditions)
+    - user_indicators: 사용자 지표 (예: user_info)
+    - ai_feedback: AI 피드백 텍스트
+    """
+    try:
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+        cursor = connection.cursor()
+        # 최신 revision_id 조회 (포트폴리오당 1:1 대응이라면 최신 데이터 한 건 업데이트)
+        cursor.execute(
+            "SELECT revision_id FROM revision WHERE portfolio_id = %s ORDER BY revision_id DESC LIMIT 1",
+            (portfolio_id,)
+        )
+        result = cursor.fetchone()
+        if result:
+            revision_id = result[0]
+            query = """
+                UPDATE revision
+                SET etfs = %s,
+                    market_indicators = %s,
+                    user_indicators = %s,
+                    ai_feedback = %s
+                WHERE portfolio_id = %s AND revision_id = %s
+            """
+            # JSON 문자열로 변환하여 저장
+            etfs_json = json.dumps({"etfs": merged_allocations}, ensure_ascii=False)
+            market_indicators_json = json.dumps(market_indicators, ensure_ascii=False)
+            user_indicators_json = json.dumps(user_indicators, ensure_ascii=False)
+            cursor.execute(query, (
+                etfs_json,
+                market_indicators_json,
+                user_indicators_json,
+                ai_feedback,
+                portfolio_id,
+                revision_id
+            ))
+            connection.commit()
+        else:
+            print("해당 portfolio_id에 해당하는 revision 데이터가 없습니다.")
+        cursor.close()
+        connection.close()
+    except Exception as e:
+        print("Error updating revision data:", e)
+
 
 # --- 실행 테스트 ---
 if __name__ == "__main__":
