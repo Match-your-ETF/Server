@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Query
 from app.ai.ai import generate_feedback
 from app.crud.portfolio import *
 from app.schemas.portfolio import *
-from typing import List, Optional
 
 router = APIRouter(
     prefix="/portfolios",
@@ -53,23 +52,35 @@ def update_portfolio_api(portfolioId: int, request: CustomPortfolioRequest):
     response_model=DecisionInvestmentResponse,
     summary="새 포트폴리오 생성 API"
 )
-def create_feedback_api(
-        portfolioId: int,
-        user_id: int = Query(..., alias="userId", description="사용자 ID"),
-        market_data: Optional[dict] = Query(None, alias="marketData", description="시장 지표 데이터 (선택 사항)")
-):
-    """
-    사용자 포트폴리오 피드백을 생성하는 API.
-    - `portfolioId`: 포트폴리오 ID
-    - `userId`: 사용자 ID
-    - `marketData`: 선택한 시장 지표 (없으면 "default" 사용)
-    """
+def decision_investment_api(contextId: int):
+    response = decision_investment(contextId)
 
-    # ✅ 기본값 처리: 사용자가 "선택안함"을 선택하면 "default"로 설정
-    market_conditions = market_data if market_data else "default"
+    if response is None:
+        raise HTTPException(status_code=500, detail="모의 투자 결정 실패")
 
-    feedback, ai_etfs = generate_feedback(portfolioId, user_id, market_conditions)
+    return response
 
+@router.put(
+    "/{contextId}/decision",
+    response_model=DecisionPortfolioResponse,
+    summary="최종 결정 API"
+)
+def decision_portfolio_api(contextId: int, request: DecisionPortfolioRequest):
+    response = decision_portfolio(contextId, request)
+
+    if response is None:
+        raise HTTPException(status_code=404, detail="해당 context_id가 존재하지 않습니다.")
+
+    return response
+
+@router.post(
+    "/{portfolioId}/feedback",
+    response_model=FeedbackPortfolioResponse,
+    summary="사용자 포트폴리오 피드백 생성 API"
+)
+def create_feedback_api(portfolioId: int, user_id: int = Query(..., alias="userId", description="사용자 ID")):
+    feedback, ai_etfs = generate_feedback(portfolioId, user_id)
+    #TODO : 리비전 데이터 - etfs 마켓지표 유저지표 및 ai_피드백 업데이트
     if feedback is None:
         raise HTTPException(status_code=404, detail="해당 feedback이 존재하지 않습니다.")
 
