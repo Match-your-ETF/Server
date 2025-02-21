@@ -371,13 +371,13 @@ def generate_feedback(portfolio_id, user_id):
         else:
             feedback_text = "피드백 생성에 실패했습니다."
         # TODO: 리비전 데이터 - etfs, market_indicators, user_indicators 및 ai_feedback 업데이트
-        update_revision_data(
-            portfolio_id,
-            rebalanced_allocation,
-            market_conditions,
-            user_info,
-            feedback_text
-        )
+    update_revision_data(
+        portfolio_id,
+        rebalanced_allocation,
+        market_conditions,
+        user_info,
+        feedback_text
+    )
     return feedback_text, rebalanced_allocation
 
 #AI3. 신규 ETF 비중 함수
@@ -579,11 +579,11 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
     except Exception as e:
         print("Error updating revision data:", e)
 # --- 실행 테스트 ---
-if __name__ == "__main__":
-    portfolio_id = "102"  # 예시: 유저1의 첫 포트폴리오
-    user_id = "1"
-    feedback_text, allocation_info = generate_feedback(portfolio_id, user_id)
-    print("AI 투자 피드백:")
-    print(feedback_text)
-    print("\n재조정된 포트폴리오 비중 정보:")
-    print(allocation_info)
+# if __name__ == "__main__":
+#     portfolio_id = "102"  # 예시: 유저1의 첫 포트폴리오
+#     user_id = "1"
+#     feedback_text, allocation_info = generate_feedback(portfolio_id, user_id)
+#     print("AI 투자 피드백:")
+#     print(feedback_text)
+#     print("\n재조정된 포트폴리오 비중 정보:")
+#     print(allocation_info)
