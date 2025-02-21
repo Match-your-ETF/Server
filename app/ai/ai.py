@@ -194,7 +194,7 @@ def ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendatio
         return []
 
 #AI2. 피드백 생성 함수
-def generate_feedback(portfolio_id, user_id):
+def generate_feedback(portfolio_id, user_id, market_data="default"):
     """
     portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백을 생성하고,
     재조정된 ETF 비중 정보와 함께, 현재 사용자가 보유한 ETF 정보(current_etfs)를 인자로 전달하여
@@ -215,10 +215,11 @@ def generate_feedback(portfolio_id, user_id):
     target_vector = np.array(user_info.get("mbti_vector"))
     preference_etfs = euclid_etfs(target_vector, etf_data)
 
-    market_conditions = revision_data.get("market_indicators",
-                                          {"interest_rate": 1.50, "inflation_rate": 1.00, "exchange_rate": 1300.0})
-    mbti_recommendation = fetch_mbti_recommendation(user_info.get("mbti_code"))
+    # ✅ `market_data`가 있으면 사용, 없으면 "default"
+    market_conditions = market_data
+    print(f"사용할 시장 지표: {market_conditions}")  # 디버깅
 
+    mbti_recommendation = fetch_mbti_recommendation(user_info.get("mbti_code"))
     # AI 기반 추가 ETF 추천 (여기서는 단순히 텍스트로 된 ETF 리스트를 반환)
     ai_etf_recommendation = ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendation)
     if not ai_etf_recommendation:
@@ -578,12 +579,4 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
 
     except Exception as e:
         print("Error updating revision data:", e)
-# --- 실행 테스트 ---
-# if __name__ == "__main__":
-#     portfolio_id = "102"  # 예시: 유저1의 첫 포트폴리오
-#     user_id = "1"
-#     feedback_text, allocation_info = generate_feedback(portfolio_id, user_id)
-#     print("AI 투자 피드백:")
-#     print(feedback_text)
-#     print("\n재조정된 포트폴리오 비중 정보:")
-#     print(allocation_info)
+
