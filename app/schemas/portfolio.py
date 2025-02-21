@@ -38,10 +38,10 @@ class CustomPortfolioRequest(BaseModel):
     user_id: int
     etfs: Dict[str, Any]  # JSON 데이터
     market_indicator_name: Optional[str] = None
-    investment_period: Optional[int] = None
+    investment_period: Optional[str] = None
     investment_goal: Optional[str] = None
-    investment_amount: Optional[int] = None
-    rebalancing_frequency: Optional[int] = None
+    investment_amount: Optional[str] = None
+    rebalancing_frequency: Optional[str] = None
 
 class CustomPortfolioResponse(BaseModel):
     is_success: bool

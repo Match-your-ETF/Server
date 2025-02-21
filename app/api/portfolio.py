@@ -80,6 +80,7 @@ def decision_portfolio_api(contextId: int, request: DecisionPortfolioRequest):
 )
 def create_feedback_api(portfolioId: int, user_id: int = Query(..., alias="userId", description="사용자 ID")):
     feedback, ai_etfs = generate_feedback(portfolioId, user_id)
+    #TODO : 리비전 데이터 - etfs 마켓지표 유저지표 및 ai_피드백 업데이트
     if feedback is None:
         raise HTTPException(status_code=404, detail="해당 feedback이 존재하지 않습니다.")
 
