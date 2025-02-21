@@ -3,6 +3,7 @@ import numpy as np
 import pymysql
 import datetime
 import json
+import decimal
 # from pathlib import Path
 from app.ai.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, client
 
@@ -498,6 +499,16 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 
     return merged_allocations
 
+#제이슨 직렬화처리
+def json_serial(obj):
+    """JSON 직렬화가 불가능한 타입을 변환하는 함수"""
+    if isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    if isinstance(obj, (np.float32, np.float64, np.float16, np.int32, np.int64)):
+        return float(obj)
+    raise TypeError("Type not serializable")
 #AI5. 리비전 데이터 업데이트 함수
 def update_revision_data(portfolio_id, merged_allocations, market_indicators, user_indicators, ai_feedback):
     """포트폴리오 리비전 데이터를 업데이트하는 함수"""
@@ -523,19 +534,21 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
             revision_id = result[0]
 
             # None 또는 빈 값 처리
-            if not ai_feedback:
-                ai_feedback = "AI 피드백 데이터 없음"
+            if not ai_feedback or ai_feedback in ["", "null", "None"]:
+                ai_feedback_json = json.dumps({"feedback": "AI 피드백 데이터 없음"}, ensure_ascii=False)
+            elif isinstance(ai_feedback, (dict, list)):
+                ai_feedback_json = json.dumps(ai_feedback, ensure_ascii=False, default=json_serial)
+            else:
+                ai_feedback_json = json.dumps({"feedback": str(ai_feedback)}, ensure_ascii=False)
 
-            # JSON 직렬화
+            # JSON 직렬화 (불가능한 타입 변환 포함)
             etfs_json = json.dumps({"etfs": merged_allocations}, ensure_ascii=False, default=json_serial)
             market_indicators_json = json.dumps(market_indicators, ensure_ascii=False, default=json_serial)
             user_indicators_json = json.dumps(user_indicators, ensure_ascii=False, default=json_serial)
 
-            # AI 피드백 JSON 처리 (MySQL JSON 타입 여부에 따라 처리 방식 선택)
-            if isinstance(ai_feedback, dict) or isinstance(ai_feedback, list):
-                ai_feedback_json = json.dumps(ai_feedback, ensure_ascii=False, default=json_serial)
-            else:
-                ai_feedback_json = ai_feedback  # 문자열 그대로 저장
+            # MySQL JSON 칼럼이 빈 문자열을 허용하지 않으면 NULL로 변환
+            if ai_feedback_json == '""':
+                ai_feedback_json = 'null'
 
             query = """
                 UPDATE revision
@@ -563,14 +576,6 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
 
     except Exception as e:
         print("Error updating revision data:", e)
-
-
-#시리얼 자료형 처리를 위한 별도함수
-def json_serial(obj):
-    """JSON 직렬화가 불가능한 타입을 변환하는 함수"""
-    if isinstance(obj, (datetime.date, datetime.datetime)):
-        return obj.isoformat()
-    raise TypeError("Type not serializable")
 # --- 실행 테스트 ---
 if __name__ == "__main__":
     portfolio_id = "102"  # 예시: 유저1의 첫 포트폴리오
