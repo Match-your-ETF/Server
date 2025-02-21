@@ -362,6 +362,7 @@ def generate_feedback(portfolio_id, user_id):
     if not feedback_text:
         if "function_call" in message and "arguments" in message["function_call"]:
             try:
+                print(':::feedback_text 출력 try:::',feedback_text)
                 func_args = json.loads(message["function_call"]["arguments"])
                 feedback_text = func_args.get("feedback", "피드백 정보가 제공되지 않았습니다.")
             except Exception as e:
