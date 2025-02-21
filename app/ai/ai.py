@@ -559,7 +559,7 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
                     ai_feedback = %s
                 WHERE portfolio_id = %s AND revision_id = %s
             """
-            print(query)
+            print('R데이터 쿼리 실행.')
             cursor.execute(query, (
                 etfs_json,
                 market_indicators_json,
@@ -569,7 +569,7 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
                 revision_id
             ))
             connection.commit()
-
+            print('R데이터 커밋이 완료되었습니다.')
         else:
             print("해당 portfolio_id에 대한 revision 데이터 없음.")
 
