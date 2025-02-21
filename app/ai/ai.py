@@ -500,14 +500,9 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 
 #AI5. 리비전 데이터 업데이트 함수
 def update_revision_data(portfolio_id, merged_allocations, market_indicators, user_indicators, ai_feedback):
-    """
-    주어진 portfolio_id에 대해 최신 revision 행을 업데이트합니다.
-    - etfs: AI 재조정 ETF 비중 (merged_allocations)
-    - market_indicators: 시장 지표 (예: market_conditions)
-    - user_indicators: 사용자 지표 (예: user_info)
-    - ai_feedback: AI 피드백 텍스트
-    """
+    """포트폴리오 리비전 데이터를 업데이트하는 함수"""
     print(':::update_revision_data 함수가 호출되었습니다.:::')
+
     try:
         connection = pymysql.connect(
             host=DB_HOST,
@@ -516,14 +511,32 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
             database=DB_NAME
         )
         cursor = connection.cursor()
-        # 최신 revision_id 조회 (포트폴리오당 1:1 대응이라면 최신 데이터 한 건 업데이트)
+
+        # 최신 revision_id 조회
         cursor.execute(
             "SELECT revision_id FROM revision WHERE portfolio_id = %s ORDER BY revision_id DESC LIMIT 1",
             (portfolio_id,)
         )
         result = cursor.fetchone()
+
         if result:
             revision_id = result[0]
+
+            # None 또는 빈 값 처리
+            if not ai_feedback:
+                ai_feedback = "AI 피드백 데이터 없음"
+
+            # JSON 직렬화
+            etfs_json = json.dumps({"etfs": merged_allocations}, ensure_ascii=False, default=json_serial)
+            market_indicators_json = json.dumps(market_indicators, ensure_ascii=False, default=json_serial)
+            user_indicators_json = json.dumps(user_indicators, ensure_ascii=False, default=json_serial)
+
+            # AI 피드백 JSON 처리 (MySQL JSON 타입 여부에 따라 처리 방식 선택)
+            if isinstance(ai_feedback, dict) or isinstance(ai_feedback, list):
+                ai_feedback_json = json.dumps(ai_feedback, ensure_ascii=False, default=json_serial)
+            else:
+                ai_feedback_json = ai_feedback  # 문자열 그대로 저장
+
             query = """
                 UPDATE revision
                 SET etfs = %s,
@@ -532,25 +545,25 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
                     ai_feedback = %s
                 WHERE portfolio_id = %s AND revision_id = %s
             """
-            # JSON 문자열로 변환할 때 `default=json_serial` 추가
-            etfs_json = json.dumps({"etfs": merged_allocations}, ensure_ascii=False, default=json_serial)
-            market_indicators_json = json.dumps(market_indicators, ensure_ascii=False, default=json_serial)
-            user_indicators_json = json.dumps(user_indicators, ensure_ascii=False, default=json_serial)
             cursor.execute(query, (
                 etfs_json,
                 market_indicators_json,
                 user_indicators_json,
-                ai_feedback,
+                ai_feedback_json,
                 portfolio_id,
                 revision_id
             ))
             connection.commit()
+
         else:
-            print("해당 portfolio_id에 해당하는 revision 데이터가 없습니다.")
+            print("해당 portfolio_id에 대한 revision 데이터 없음.")
+
         cursor.close()
         connection.close()
+
     except Exception as e:
         print("Error updating revision data:", e)
+
 
 #시리얼 자료형 처리를 위한 별도함수
 def json_serial(obj):
