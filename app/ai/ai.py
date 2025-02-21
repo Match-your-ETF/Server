@@ -1,11 +1,9 @@
 import pandas as pd
 import numpy as np
 import pymysql
-# import openai
-# import os
+import datetime
 import json
 # from pathlib import Path
-# from dotenv import load_dotenv
 from app.ai.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, client
 
 # --- DB 함수 정의 ---
@@ -534,10 +532,10 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
                     ai_feedback = %s
                 WHERE portfolio_id = %s AND revision_id = %s
             """
-            # JSON 문자열로 변환하여 저장
-            etfs_json = json.dumps({"etfs": merged_allocations}, ensure_ascii=False)
-            market_indicators_json = json.dumps(market_indicators, ensure_ascii=False)
-            user_indicators_json = json.dumps(user_indicators, ensure_ascii=False)
+            # JSON 문자열로 변환할 때 `default=json_serial` 추가
+            etfs_json = json.dumps({"etfs": merged_allocations}, ensure_ascii=False, default=json_serial)
+            market_indicators_json = json.dumps(market_indicators, ensure_ascii=False, default=json_serial)
+            user_indicators_json = json.dumps(user_indicators, ensure_ascii=False, default=json_serial)
             cursor.execute(query, (
                 etfs_json,
                 market_indicators_json,
@@ -554,7 +552,12 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
     except Exception as e:
         print("Error updating revision data:", e)
 
-
+#시리얼 자료형 처리를 위한 별도함수
+def json_serial(obj):
+    """JSON 직렬화가 불가능한 타입을 변환하는 함수"""
+    if isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    raise TypeError("Type not serializable")
 # --- 실행 테스트 ---
 if __name__ == "__main__":
     portfolio_id = "102"  # 예시: 유저1의 첫 포트폴리오
