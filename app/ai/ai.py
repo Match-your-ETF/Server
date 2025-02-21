@@ -368,7 +368,7 @@ def generate_feedback(portfolio_id, user_id):
                 print("function_call arguments 파싱 에러:", e)
                 feedback_text = "피드백 정보를 파싱할 수 없습니다."
         else:
-            feedback_text = "피드백 정보가 제공되지 않았습니다."
+            feedback_text = "피드백 생성에 실패했습니다."
         # TODO: 리비전 데이터 - etfs, market_indicators, user_indicators 및 ai_feedback 업데이트
         update_revision_data(
             portfolio_id,
@@ -558,6 +558,7 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
                     ai_feedback = %s
                 WHERE portfolio_id = %s AND revision_id = %s
             """
+            print(query)
             cursor.execute(query, (
                 etfs_json,
                 market_indicators_json,
