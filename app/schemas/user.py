@@ -12,8 +12,6 @@ class UserResponse(BaseModel):
     rebalancing_frequency: Optional[int] = None
     mbti_code: str
     mbti_vector: str
-    created_at: datetime
-    updated_at: datetime
 
 class UserLog(BaseModel):
     context_id: int
