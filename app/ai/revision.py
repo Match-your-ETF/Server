@@ -249,7 +249,7 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
 # revision 데이터를 기반으로 AI 피드백을 생성하고 DB를 업데이트하는 함수
 def generate_feedback(portfolio_id, user_id, market_data="default"):
     """
-    portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백을 생성하고,
+    portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백(평문 보고서)을 생성하고,
     재조정된 ETF 비중 정보와 함께 현재 사용자가 보유한 ETF 정보를 반영하여 추천합니다.
     """
     from app.ai.ai import fetch_user_info, fetch_etf_data, fetch_mbti_recommendation, ai_recommend_etfs, euclid_etfs
@@ -288,11 +288,11 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         revision_etfs=revision_data.get("etfs", {})
     )
 
+    # 전달할 데이터 구성 (과거 방식 그대로)
     function_payload = {
         "portfolio_pc_vector": portfolio_pc_vector.tolist(),
         "target_pc_vector": target_vector.tolist(),
         "preference_etfs": preference_etfs[["ticker"]].to_dict(orient="list"),
-        "ai_recommendation_etfs": ai_etf_recommendation,
         "mbti_recommendation_etfs": mbti_recommendation,
         "current_etfs": current_etfs,
         "user_info": {
@@ -306,15 +306,25 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         "market_conditions": market_conditions
     }
 
+    # 평문 보고서 형식의 프롬프트 (원래 방식 복원)
     prompt = """
     You are WISE (Wealth Investment Strategic Expert), an AI investment advisor specializing in ETF portfolio analysis and optimization.
+    Your role is to provide personalized, actionable advice based on the Korean investor's portfolio data, market conditions, and profile details.
+
     Please analyze the following aspects:
-      1. Overall asset allocation strategy (2-3 sentences)
-      2. Strengths (2-3 bullet points)
-      3. Risks (1-2 bullet points)
-      4. Advice (short-term/long-term)
-      5. Recommended ETFs
-    Provide your entire analysis in a JSON object under the key "feedback". Do not include any other keys or explanations.
+    1. Overall asset allocation strategy (2-3 sentences)
+    2. Risk-return balance
+    3. Market condition alignment
+    4. Goal compatibility
+
+    Respond in the following format (plain text report):
+      1. 포트폴리오 평가 (2-3줄)
+      2. 강점 (글머리 기호로 2-3개)
+      3. 위험 요소 (글머리 기호로 1-2개)
+      4. 조언 (단기/장기)
+      5. 추천 ETF
+
+    포트폴리오 평가 및 투자 피드백은 자유로운 평문 텍스트로 작성해 주세요.
     """
 
     response = client.chat.completions.create(
@@ -322,7 +332,7 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         messages=[
             {
                 "role": "system",
-                "content": "당신은 투자 분석 전문가입니다. 반드시 analyze_portfolio 함수 호출 형식으로 응답해주세요. 반드시 결과 JSON에 'feedback' 키를 포함시키세요."
+                "content": "당신은 투자 분석 전문가입니다. 반드시 analyze_portfolio 함수 호출 형식으로 평문 보고서(plain text) 응답을 생성해주세요."
             },
             {"role": "user", "content": prompt},
             {"role": "assistant",
@@ -331,57 +341,16 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         functions=[
             {
                 "name": "analyze_portfolio",
-                "description": "Analyze ETF portfolio data and generate feedback including ETF recommendations.",
+                "description": "Analyze ETF portfolio data and generate a plain text portfolio analysis report.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "feedback": {
                             "type": "string",
-                            "description": "Portfolio analysis feedback text."
-                        },
-                        "portfolio_pc_vector": {"type": "array", "items": {"type": "number"}},
-                        "target_pc_vector": {"type": "array", "items": {"type": "number"}},
-                        "preference_etfs": {
-                            "type": "object",
-                            "properties": {
-                                "ticker": {"type": "array", "items": {"type": "string"}}
-                            }
-                        },
-                        "ai_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
-                        "mbti_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
-                        "current_etfs": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "ticker": {"type": "string"},
-                                    "allocation": {"type": "number"}
-                                },
-                                "required": ["ticker", "allocation"]
-                            }
-                        },
-                        "user_info": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string"},
-                                "age": {"type": "number"},
-                                "investment_period": {"type": "number"},
-                                "investment_amount": {"type": "number"},
-                                "investment_goal": {"type": "string"},
-                                "rebalancing_frequency": {"type": "number"}
-                            }
-                        },
-                        "market_conditions": {
-                            "type": "object",
-                            "properties": {
-                                "interest_rate": {"type": "number"},
-                                "inflation_rate": {"type": "number"},
-                                "exchange_rate": {"type": "number"}
-                            }
+                            "description": "A plain text portfolio analysis report including portfolio evaluation, strengths, risks, advice, and recommended ETFs."
                         }
                     },
-                    "required": ["feedback", "portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info",
-                                 "market_conditions"]
+                    "required": ["feedback"]
                 }
             }
         ],
@@ -391,7 +360,7 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
     print('피드백 생성함수의 message:')
     print(message)
 
-    # 피드백 텍스트 추출: GPT가 함수 호출로 응답했으므로 message.content는 None일 수 있음.
+    # 평문 보고서(plain text)를 "feedback" 키에서 추출
     feedback_text = message.content
     if not feedback_text:
         if "function_call" in message and "arguments" in message["function_call"]:
