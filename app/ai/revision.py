@@ -360,6 +360,8 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         function_call = {"name": "analyze_portfolio"}  # 여기서 강제 호출
     )
     message = response.choices[0].message
+    print('피드백 생성함수의 message:')
+    print(message)
     feedback_text = message.content
     if not feedback_text:
         if "function_call" in message and "arguments" in message["function_call"]:
