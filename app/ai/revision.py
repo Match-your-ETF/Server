@@ -186,7 +186,7 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 # DB의 revision 데이터를 업데이트하는 함수
 def update_revision_data(portfolio_id, merged_allocations, market_indicators, user_indicators, ai_feedback):
     """포트폴리오 리비전 데이터를 업데이트하는 함수"""
-    print(portfolio_id,':update_revision_data 함수가 호출되었습니다.:::')
+    print(':::update_revision_data 함수가 호출되었습니다.:::')
     try:
         connection = pymysql.connect(
             host=DB_HOST,
@@ -249,7 +249,7 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
 # revision 데이터를 기반으로 AI 피드백을 생성하고 DB를 업데이트하는 함수
 def generate_feedback(portfolio_id, user_id, market_data="default"):
     """
-    portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백(평문 보고서)을 생성하고,
+    portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백을 생성하고,
     재조정된 ETF 비중 정보와 함께 현재 사용자가 보유한 ETF 정보를 반영하여 추천합니다.
     """
     from app.ai.ai import fetch_user_info, fetch_etf_data, fetch_mbti_recommendation, ai_recommend_etfs, euclid_etfs
@@ -257,13 +257,11 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
     # 사용자 정보 조회
     user_info = fetch_user_info(user_id)
     if not user_info:
-        print("사용자 정보를 찾을 수 없습니다.")
         return "사용자 정보를 찾을 수 없습니다.", []
 
     # 포트폴리오 최신 revision 조회
     revision_data = fetch_revision_by_portfolio(portfolio_id)
     if not revision_data:
-        print("포트폴리오 데이터가 없습니다.")
         return "포트폴리오 데이터가 없습니다.", []
     etf_data = fetch_etf_data()
 
@@ -288,7 +286,6 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         revision_etfs=revision_data.get("etfs", {})
     )
 
-    # 전달할 데이터 구성 (과거 방식 그대로)
     function_payload = {
         "portfolio_pc_vector": portfolio_pc_vector.tolist(),
         "target_pc_vector": target_vector.tolist(),
@@ -306,34 +303,26 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         "market_conditions": market_conditions
     }
 
-    # 평문 보고서 형식의 프롬프트 (원래 방식 복원)
     prompt = """
     You are WISE (Wealth Investment Strategic Expert), an AI investment advisor specializing in ETF portfolio analysis and optimization.
-    Your role is to provide personalized, actionable advice based on the Korean investor's portfolio data, market conditions, and profile details.
-
     Please analyze the following aspects:
-    1. Overall asset allocation strategy (2-3 sentences)
+    1. Overall asset allocation strategy
     2. Risk-return balance
     3. Market condition alignment
     4. Goal compatibility
-
-    Respond in the following format (plain text report):
-      1. 포트폴리오 평가 (2-3줄)
-      2. 강점 (글머리 기호로 2-3개)
-      3. 위험 요소 (글머리 기호로 1-2개)
-      4. 조언 (단기/장기)
-      5. 추천 ETF
-
-    포트폴리오 평가 및 투자 피드백은 자유로운 평문 텍스트로 작성해 주세요.
+    Respond in the following format:
+    1. 포트폴리오 평가 (2-3줄)
+    2. 강점 (글머리 기호로 2-3개)
+    3. 위험 요소 (글머리 기호로 1-2개)
+    4. 조언 (단기/장기)
+    5. 추천 ETF
     """
-
     response = client.chat.completions.create(
         model="gpt-4o",
+        # todo : 펑션콜을 의무로 태우면서도 user 프롬프트 안에 있는 내용대로 최종응답이 와야한다.
+        # (펑션 페이로드에 있는 인자들을 json형태의 포맷으로 반드시 전달해야함. 펑션을 안타는경우 종종있음)
         messages=[
-            {
-                "role": "system",
-                "content": "당신은 투자 분석 전문가입니다. 반드시 analyze_portfolio 함수 호출 형식으로 평문 보고서(plain text) 응답을 생성해주세요."
-            },
+            {"role": "system", "content": "당신은 투자 분석 전문가입니다."},
             {"role": "user", "content": prompt},
             {"role": "assistant",
              "function_call": {"name": "analyze_portfolio", "arguments": json.dumps(function_payload)}}
@@ -341,26 +330,40 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         functions=[
             {
                 "name": "analyze_portfolio",
-                "description": "Analyze ETF portfolio data and generate a plain text portfolio analysis report.",
+                "description": "Analyze ETF portfolio data and generate feedback including ETF recommendations.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "feedback": {
-                            "type": "string",
-                            "description": "A plain text portfolio analysis report including portfolio evaluation, strengths, risks, advice, and recommended ETFs."
-                        }
+                        "portfolio_pc_vector": {"type": "array", "items": {"type": "number"}},
+                        "target_pc_vector": {"type": "array", "items": {"type": "number"}},
+                        "preference_etfs": {"type": "object", "properties": {"ticker": {"type": "array", "items": {"type": "string"}}}},
+                        "ai_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
+                        "mbti_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
+                        "current_etfs": {"type": "array", "items": {"type": "object", "properties": {"ticker": {"type": "string"}, "allocation": {"type": "number"}}, "required": ["ticker", "allocation"]}},
+                        "user_info": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "age": {"type": "number"},
+                                "investment_period": {"type": "number"},
+                                "investment_amount": {"type": "number"},
+                                "investment_goal": {"type": "string"},
+                                "rebalancing_frequency": {"type": "number"}
+                            }
+                        },
+                        "market_conditions": {"type": "object", "properties": {"interest_rate": {"type": "number"}, "inflation_rate": {"type": "number"}, "exchange_rate": {"type": "number"}}}
                     },
-                    "required": ["feedback"]
+                    "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info", "market_conditions"]
                 }
             }
         ],
-        function_call={"name": "analyze_portfolio"}
+        function_call="analyze_portfolio"  # 강제 호출 옵션
     )
     message = response.choices[0].message
-    print('피드백 생성함수의 message:')
-    print(message)
-
-    # 평문 보고서(plain text)를 "feedback" 키에서 추출
+    if "function_call" in message:
+        print("펑션콜이 호출되었습니다:", message["function_call"])
+    else:
+        print("펑션콜이 호출되지 않았습니다.")
     feedback_text = message.content
     if not feedback_text:
         if "function_call" in message and "arguments" in message["function_call"]:
@@ -372,7 +375,6 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
                 feedback_text = "피드백 정보를 파싱할 수 없습니다."
         else:
             feedback_text = "피드백 생성에 실패했습니다."
-
     update_revision_data(
         portfolio_id,
         rebalanced_allocation,
@@ -381,4 +383,3 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         feedback_text
     )
     return feedback_text, rebalanced_allocation
-
