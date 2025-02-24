@@ -186,7 +186,7 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 # DB의 revision 데이터를 업데이트하는 함수
 def update_revision_data(portfolio_id, merged_allocations, market_indicators, user_indicators, ai_feedback):
     """포트폴리오 리비전 데이터를 업데이트하는 함수"""
-    print(':::update_revision_data 함수가 호출되었습니다.:::')
+    print(portfolio_id,':update_revision_data 함수가 호출되었습니다.:::')
     try:
         connection = pymysql.connect(
             host=DB_HOST,
@@ -257,11 +257,13 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
     # 사용자 정보 조회
     user_info = fetch_user_info(user_id)
     if not user_info:
+        print("사용자 정보를 찾을 수 없습니다.")
         return "사용자 정보를 찾을 수 없습니다.", []
 
     # 포트폴리오 최신 revision 조회
     revision_data = fetch_revision_by_portfolio(portfolio_id)
     if not revision_data:
+        print("포트폴리오 데이터가 없습니다.")
         return "포트폴리오 데이터가 없습니다.", []
     etf_data = fetch_etf_data()
 
@@ -320,7 +322,7 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "당신은 투자 분석 전문가입니다."},
+            {"role": "system", "content": "당신은 투자 분석 전문가입니다. 반드시 analyze_portfolio 함수 호출 형식으로 응답해주세요."},
             {"role": "user", "content": prompt},
             {"role": "assistant",
              "function_call": {"name": "analyze_portfolio", "arguments": json.dumps(function_payload)}}
@@ -354,7 +356,8 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
                     "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info", "market_conditions"]
                 }
             }
-        ]
+        ],
+        function_call = {"name": "analyze_portfolio"}  # 여기서 강제 호출
     )
     message = response.choices[0].message
     feedback_text = message.content
