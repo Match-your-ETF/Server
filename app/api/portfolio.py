@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from app.ai.ai import generate_feedback
+from app.ai.revision import generate_feedback
 from app.crud.portfolio import *
 from app.schemas.portfolio import *
 

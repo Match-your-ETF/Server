@@ -1,5 +1,6 @@
 from app.ai.config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, client
-from app.ai.ai import euclid_etfs, fetch_revision_by_portfolio
+from app.ai.revision import fetch_revision_by_portfolio  # 기존 ai.py가 아닌 revision.py에서 임포트
+from app.ai.ai import euclid_etfs
 import pandas as pd
 import numpy as np
 import pymysql
