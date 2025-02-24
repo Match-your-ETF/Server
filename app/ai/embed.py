@@ -88,17 +88,12 @@ def query_recommend_etfs(user_query, top_k=4, use_gpt_summary=True):
     사용자 자연어 쿼리를 임베딩하고, ETF 테이블의 text_vector와 코사인 유사도를 비교하여 상위 ETF 추천.
     추천 결과를 JSON 형식으로 반환.
     """
-    print('#0.')
-    print(user_query)
     # 1. 사용자 쿼리 임베딩
     query_embedding = get_embedding(user_query)
-    print('#1.')
-    print(query_embedding)
 
     # 2. ETF 데이터 로드 (text_vector 포함)
     etf_data = fetch_etf_text_vectors()
-    print('#2.')
-    print(etf_data)
+
     # 3. 각 ETF와의 코사인 유사도 계산
     scores = []
     for _, row in etf_data.iterrows():
@@ -109,8 +104,7 @@ def query_recommend_etfs(user_query, top_k=4, use_gpt_summary=True):
     # 4. 유사도 기준 정렬 후 상위 ETF 추천
     scores.sort(key=lambda x: x[1], reverse=True)
     top_etfs = scores[:top_k]
-    print('#4.')
-    print(top_etfs)
+
     # 5. 추천 ETF 포맷팅 (JSON 형식으로 리턴)
     formatted_recommendations = []
     for etf, _ in top_etfs:
@@ -127,7 +121,7 @@ def query_recommend_etfs(user_query, top_k=4, use_gpt_summary=True):
             "category": category,
             "summary": summary
         })
-    print('#4.')
+    print('#5.')
     print(formatted_recommendations)
     return formatted_recommendations
 
