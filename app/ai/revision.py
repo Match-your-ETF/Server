@@ -322,7 +322,7 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
         # todo : 펑션콜을 의무로 태우면서도 user 프롬프트 안에 있는 내용대로 최종응답이 와야한다.
         # (펑션 페이로드에 있는 인자들을 json형태의 포맷으로 반드시 전달해야함. 펑션을 안타는경우 종종있음)
         messages=[
-            {"role": "system", "content": "당신은 투자 분석 전문가입니다."},
+            {"role": "system", "content": "당신은 투자 분석 전문가입니다. 모든 요청에 대해 반드시 analyze_portfolio 펑션을 호출하여야 합니다."},
             {"role": "user", "content": prompt},
             {"role": "assistant",
              "function_call": {"name": "analyze_portfolio", "arguments": json.dumps(function_payload)}}
@@ -357,7 +357,7 @@ def generate_feedback(portfolio_id, user_id, market_data="default"):
                 }
             }
         ],
-        function_call="analyze_portfolio"  # 강제 호출 옵션
+        function_call="auto"
     )
     message = response.choices[0].message
     if "function_call" in message:
