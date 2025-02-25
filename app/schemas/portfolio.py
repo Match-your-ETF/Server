@@ -64,6 +64,13 @@ class ETF(BaseModel):
     ticker: str
     allocation: float
 
+class MarketData(BaseModel):
+    market_condition: str = "default"
+    interest_rate: Optional[float] = None
+    exchange_rate: Optional[float] = None
+    inflation_rate: Optional[float] = None
+    # 기타 필요한 필드들...
 class FeedbackPortfolioResponse(BaseModel):
     feedback: str
     ai_etfs: List[ETF]
+    market_data: MarketData
