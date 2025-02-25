@@ -322,3 +322,66 @@ def decision_portfolio(context_id: int, data: DecisionPortfolioRequest) -> Decis
     finally:
         cursor.close()
         conn.close()
+
+def update_portfolio_etfs(portfolio_id: int, data: UpdatePortfolioEtfsRequest):
+    """
+    주어진 portfolio_id로 revision 테이블의 etfs를 업데이트하고 revision 데이터를 반환
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        # revision 찾기
+        query = """
+            SELECT revision_id FROM revision
+            WHERE portfolio_id = %s
+        """
+        cursor.execute(query, (portfolio_id,))
+        latest_revision = cursor.fetchone()
+
+        if not latest_revision:
+            print(f"No revisions found for portfolio_id={portfolio_id}")
+            return None
+
+        revision_id = latest_revision["revision_id"]
+
+        # revision 테이블 업데이트 (etfs 필드 업데이트)
+        query = """
+            UPDATE revision
+            SET etfs = %s
+            WHERE revision_id = %s
+        """
+        cursor.execute(query, (json.dumps(data.etfs, ensure_ascii=False), revision_id))
+        conn.commit()
+
+        # 업데이트된 revision 데이터 가져오기
+        query = """
+            SELECT portfolio_id, revision_id, etfs, market_indicators, user_indicators, ai_feedback
+            FROM revision
+            WHERE revision_id = %s
+        """
+        cursor.execute(query, (revision_id,))
+        updated_revision = cursor.fetchone()
+
+        if not updated_revision:
+            print(f"Failed to retrieve updated revision for revision_id={revision_id}")
+            return None
+
+        # JSON 변환 후 반환
+        return {
+            "portfolio_id": updated_revision["portfolio_id"],
+            "revision_id": updated_revision["revision_id"],
+            "etfs": json.loads(updated_revision["etfs"]),
+            "market_indicators": json.loads(updated_revision["market_indicators"]),
+            "user_indicators": json.loads(updated_revision["user_indicators"]),
+            "ai_feedback": json.loads(updated_revision["ai_feedback"]),
+        }
+
+    except Exception as e:
+        conn.rollback()
+        print(f"DB 업데이트 오류: {e}")
+        return None
+
+    finally:
+        cursor.close()
+        conn.close()

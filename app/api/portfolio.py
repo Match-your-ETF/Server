@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, Query, Body
 from app.ai.revision import generate_feedback
 from app.crud.portfolio import *
 from app.schemas.portfolio import *
@@ -89,3 +89,16 @@ async def create_feedback_api(
     if feedback is None:
         raise HTTPException(status_code=404, detail="해당 feedback이 존재하지 않습니다.")
     return FeedbackPortfolioResponse(feedback=feedback, ai_etfs=ai_etfs, market_data=market_data)
+
+@router.put(
+    "/{portfolioId}/etfs",
+    response_model=PortfolioLog,
+    summary="포트폴리오 내 etfs 업데이트 API"
+)
+def update_portfolio_etfs_api(portfolioId: int, request: UpdatePortfolioEtfsRequest):
+    response = update_portfolio_etfs(portfolioId, request)
+
+    if response is None:
+        raise HTTPException(status_code=404, detail="해당 portfolioId가 존재하지 않습니다.")
+
+    return response

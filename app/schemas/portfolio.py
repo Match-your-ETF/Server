@@ -70,7 +70,11 @@ class MarketData(BaseModel):
     exchange_rate: Optional[float] = None
     inflation_rate: Optional[float] = None
     # 기타 필요한 필드들...
+
 class FeedbackPortfolioResponse(BaseModel):
     feedback: str
     ai_etfs: List[ETF]
     market_data: MarketData
+
+class UpdatePortfolioEtfsRequest(BaseModel):
+    etfs: Dict[str, Any]
