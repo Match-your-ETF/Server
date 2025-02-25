@@ -271,7 +271,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
     target_vector = np.array(user_info.get("mbti_vector"))
     preference_etfs = euclid_etfs(target_vector, etf_data)
 
-    market_conditions = market_data
+    market_conditions = market_data.dict()
     print(f"사용할 시장 지표: {market_conditions}")
 
     mbti_recommendation = fetch_mbti_recommendation(user_info.get("mbti_code"))
