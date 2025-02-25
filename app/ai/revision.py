@@ -137,6 +137,17 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
     """
     기존 revision의 ETF 할당과 AI 추천 ETF 리스트를 기반으로 전체 비중을 재조정하는 함수.
     """
+    # recommended_etfs 정규화: 각 항목이 문자열이면 dict로 변환
+    normalized_recommended_etfs = []
+    for etf in recommended_etfs:
+        if isinstance(etf, str):
+            normalized_recommended_etfs.append({"ticker": etf})
+        elif isinstance(etf, dict):
+            normalized_recommended_etfs.append(etf)
+        else:
+            normalized_recommended_etfs.append({"ticker": str(etf)})
+    recommended_etfs = normalized_recommended_etfs
+
     # revision_etfs가 문자열이면 JSON 파싱
     if isinstance(revision_etfs, str):
         try:
