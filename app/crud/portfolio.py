@@ -345,13 +345,19 @@ def update_portfolio_etfs(portfolio_id: int, data: UpdatePortfolioEtfsRequest):
 
         revision_id = latest_revision["revision_id"]
 
+        # data.etfs가 리스트라면 딕셔너리 형태로 변환
+        if isinstance(data.etfs, list):
+            etfs_dict = {etf.ticker: str(etf.allocation) for etf in data.etfs}
+        else:
+            etfs_dict = data.etfs
+
         # revision 테이블 업데이트 (etfs 필드 업데이트)
         query = """
             UPDATE revision
             SET etfs = %s
             WHERE revision_id = %s
         """
-        cursor.execute(query, (json.dumps(data.etfs, ensure_ascii=False), revision_id))
+        cursor.execute(query, (json.dumps(etfs_dict, ensure_ascii=False), revision_id))
         conn.commit()
 
         # 업데이트된 revision 데이터 가져오기

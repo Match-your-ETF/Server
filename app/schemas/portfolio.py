@@ -77,4 +77,4 @@ class FeedbackPortfolioResponse(BaseModel):
     market_data: MarketData
 
 class UpdatePortfolioEtfsRequest(BaseModel):
-    etfs: Dict[str, Any]
+    etfs: List[ETF]
