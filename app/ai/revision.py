@@ -277,13 +277,15 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
     etf_data = fetch_etf_data()
 
     portfolio_pc_vector = get_portfolio_pc_vector(revision_data)
+    #1. 리비전데이터 가져오고
     target_vector = np.array(user_info.get("mbti_vector"))
     preference_etfs = euclid_etfs(target_vector, etf_data)
-
+    #1-1 유클리드 거리 계산하고
     market_conditions = market_data.dict()
     print(f"사용할 시장 지표: {market_conditions}")
-
+    #2. mbti추천 데이터 가져오고
     mbti_recommendation = fetch_mbti_recommendation(user_info.get("mbti_code"))
+    #3. ai etf추천데이터 만들고.
     ai_etf_recommendation = ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendation)
     if not ai_etf_recommendation:
         return json.dumps({"error": "AI 추천 ETF를 생성할 수 없습니다."}, ensure_ascii=False)
@@ -301,6 +303,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
         "portfolio_pc_vector": portfolio_pc_vector.tolist(),
         "target_pc_vector": target_vector.tolist(),
         "preference_etfs": preference_etfs[["ticker"]].to_dict(orient="list"),
+        "ai_recommendation_etfs": ai_etf_recommendation,  # rebalanced_allocation으로 고쳐서 줄지
         "mbti_recommendation_etfs": mbti_recommendation,
         "current_etfs": current_etfs,
         "user_info": {
