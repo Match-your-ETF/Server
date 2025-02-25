@@ -270,7 +270,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
         market_data = {"market_condition": "default"}
     from app.ai.ai import fetch_user_info, fetch_etf_data, fetch_mbti_recommendation, ai_recommend_etfs, euclid_etfs
 
-    # 사용자 정보 및 리비전 데이터 조회
+    # 사용자 정보 및 revision 데이터 조회
     user_info = fetch_user_info(user_id)
     if not user_info:
         return "사용자 정보를 찾을 수 없습니다.", []
@@ -285,6 +285,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
     market_conditions = market_data.dict()
     print("사용할 시장 지표:", market_conditions)
     mbti_recommendation = fetch_mbti_recommendation(user_info.get("mbti_code"))
+
     ai_etf_recommendation = ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendation)
     if not ai_etf_recommendation:
         return json.dumps({"error": "AI 추천 ETF를 생성할 수 없습니다."}, ensure_ascii=False)
@@ -338,7 +339,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
             {"role": "assistant",
              "function_call": {"name": "analyze_portfolio", "arguments": json.dumps(function_payload)}}
         ],
-        functions=[  # analyze_portfolio 함수 스키마는 생략하였습니다.
+        functions=[  # analyze_portfolio 함수 스키마 (생략 가능)
             {
                 "name": "analyze_portfolio",
                 "description": "Analyze ETF portfolio data and generate feedback including ETF recommendations.",
@@ -347,7 +348,8 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                     "properties": {
                         "portfolio_pc_vector": {"type": "array", "items": {"type": "number"}},
                         "target_pc_vector": {"type": "array", "items": {"type": "number"}},
-                        "preference_etfs": {"type": "object", "properties": {"ticker": {"type": "array", "items": {"type": "string"}}}},
+                        "preference_etfs": {"type": "object",
+                                            "properties": {"ticker": {"type": "array", "items": {"type": "string"}}}},
                         "ai_recommendation_etfs": {
                             "type": "array",
                             "items": {
@@ -360,7 +362,10 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                             }
                         },
                         "mbti_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
-                        "current_etfs": {"type": "array", "items": {"type": "object", "properties": {"ticker": {"type": "string"}, "allocation": {"type": "number"}}, "required": ["ticker", "allocation"]}},
+                        "current_etfs": {"type": "array", "items": {"type": "object",
+                                                                    "properties": {"ticker": {"type": "string"},
+                                                                                   "allocation": {"type": "number"}},
+                                                                    "required": ["ticker", "allocation"]}},
                         "user_info": {
                             "type": "object",
                             "properties": {
@@ -372,9 +377,12 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                                 "rebalancing_frequency": {"type": "number"}
                             }
                         },
-                        "market_conditions": {"type": "object", "properties": {"interest_rate": {"type": "number"}, "inflation_rate": {"type": "number"}, "exchange_rate": {"type": "number"}}}
+                        "market_conditions": {"type": "object", "properties": {"interest_rate": {"type": "number"},
+                                                                               "inflation_rate": {"type": "number"},
+                                                                               "exchange_rate": {"type": "number"}}}
                     },
-                    "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info", "market_conditions"]
+                    "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info",
+                                 "market_conditions"]
                 }
             }
         ],
@@ -383,17 +391,25 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
     print("generate_feedback - 전체 응답:", response)
     message = response.choices[0].message
     print("generate_feedback - 메시지:", message)
+
+    # 피드백 텍스트 추출 로직 개선
     feedback_text = message.content
     if not feedback_text:
         if "function_call" in message and "arguments" in message["function_call"]:
             try:
                 func_args = json.loads(message["function_call"]["arguments"])
-                feedback_text = func_args.get("feedback", "피드백 정보가 제공되지 않았습니다.")
+                print("function_call arguments:", func_args)
+                feedback_text = func_args.get("feedback")
+                if not feedback_text:
+                    print("function_call 응답에 'feedback' 키가 없습니다.")
+                    feedback_text = "피드백 정보가 제공되지 않았습니다."
             except Exception as e:
                 print("function_call arguments 파싱 에러:", e)
                 feedback_text = "피드백 정보를 파싱할 수 없습니다."
         else:
+            print("message에 function_call 정보가 없습니다.")
             feedback_text = "피드백 생성에 실패했습니다."
+
     update_revision_data(
         portfolio_id,
         rebalanced_allocation,
