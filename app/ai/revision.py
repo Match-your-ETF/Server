@@ -303,7 +303,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
         "portfolio_pc_vector": portfolio_pc_vector.tolist(),
         "target_pc_vector": target_vector.tolist(),
         "preference_etfs": preference_etfs[["ticker"]].to_dict(orient="list"),
-        "ai_recommendation_etfs": ai_etf_recommendation,  # rebalanced_allocation으로 고쳐서 줄지
+        "ai_recommendation_etfs": rebalanced_allocation,  # 고쳐서 줄지
         "mbti_recommendation_etfs": mbti_recommendation,
         "current_etfs": current_etfs,
         "user_info": {
@@ -350,10 +350,24 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                     "properties": {
                         "portfolio_pc_vector": {"type": "array", "items": {"type": "number"}},
                         "target_pc_vector": {"type": "array", "items": {"type": "number"}},
-                        "preference_etfs": {"type": "object", "properties": {"ticker": {"type": "array", "items": {"type": "string"}}}},
-                        "ai_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
+                        "preference_etfs": {"type": "object",
+                                            "properties": {"ticker": {"type": "array", "items": {"type": "string"}}}},
+                        "ai_recommendation_etfs": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "ticker": {"type": "string"},
+                                    "allocation": {"type": "number"}
+                                },
+                                "required": ["ticker", "allocation"]
+                            }
+                        },
                         "mbti_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
-                        "current_etfs": {"type": "array", "items": {"type": "object", "properties": {"ticker": {"type": "string"}, "allocation": {"type": "number"}}, "required": ["ticker", "allocation"]}},
+                        "current_etfs": {"type": "array", "items": {"type": "object",
+                                                                    "properties": {"ticker": {"type": "string"},
+                                                                                   "allocation": {"type": "number"}},
+                                                                    "required": ["ticker", "allocation"]}},
                         "user_info": {
                             "type": "object",
                             "properties": {
@@ -365,19 +379,21 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                                 "rebalancing_frequency": {"type": "number"}
                             }
                         },
-                        "market_conditions": {"type": "object", "properties": {"interest_rate": {"type": "number"}, "inflation_rate": {"type": "number"}, "exchange_rate": {"type": "number"}}}
+                        "market_conditions": {"type": "object", "properties": {"interest_rate": {"type": "number"},
+                                                                               "inflation_rate": {"type": "number"},
+                                                                               "exchange_rate": {"type": "number"}}}
                     },
-                    "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info", "market_conditions"]
+                    "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info",
+                                 "market_conditions"]
                 }
             }
+
         ],
         function_call="auto"
     )
     message = response.choices[0].message
-    if "function_call" in message:
-        print("펑션콜이 호출되었습니다:", message["function_call"])
-    else:
-        print("펑션콜이 호출되지 않았습니다.")
+
+
     feedback_text = message.content
     if not feedback_text:
         if "function_call" in message and "arguments" in message["function_call"]:
