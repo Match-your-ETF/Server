@@ -154,8 +154,8 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
             if ticker:
                 existing_allocations[ticker] = allocation
 
-    # 추천 ETF 중 기존에 없는 신규 ETF 도출
-    new_etfs = [etf for etf in recommended_etfs if etf not in existing_allocations]
+    # 추천 ETF 중 기존에 없는 신규 ETF 도출 (ticker 값으로 비교)
+    new_etfs = [etf for etf in recommended_etfs if etf.get("ticker") not in existing_allocations]
 
     # 기존 ETF의 전체 할당 합을 지정된 비율로 조정
     total_existing = sum(existing_allocations.values())
