@@ -81,21 +81,23 @@ def json_serial(obj):
     raise TypeError("Type not serializable")
 
 # AI를 호출하여 ETF 리스트의 할당비율을 생성하는 함수
+import ast
+
+
 def get_allocation_for_etfs(etfs):
     """
     AI에게 ETF 리스트를 전달하여, 각 ETF에 대한 추천 비중을 산출합니다.
-    전체 할당이 100%가 되도록 배분하며, 결과는 반드시 [{"ticker": "VOO", "allocation": 40}, ...] 형태로 반환.
+    전체 할당이 100%가 되도록 배분하며, 결과는 반드시 [{"ticker": "VOO", "allocation": 40}, ...] 형태로 반환합니다.
     """
     prompt = f"""
     You are a financial portfolio optimizer.
     Given the following ETFs: {etfs},
     please allocate them into a portfolio so that the total allocation sums to exactly 100%.
     Ensure you consider diversification and risk management.
-
-    Return only a JSON array where each element is an object with exactly two keys:
+    IMPORTANT: Return the result as a valid JSON array where each element is an object with exactly two keys:
       "ticker": a string representing the ETF ticker,
       "allocation": a number representing the percentage allocation.
-    For example:
+    Do NOT split ticker names into individual characters. For example, return:
     [
         {{"ticker": "VOO", "allocation": 40}},
         {{"ticker": "QQQ", "allocation": 35}},
@@ -123,21 +125,29 @@ def get_allocation_for_etfs(etfs):
 
     try:
         recommended_allocation = json.loads(content)
-        total_allocation = sum(item["allocation"] for item in recommended_allocation)
-        if total_allocation != 100:
-            print("Warning: AI allocation sum is not 100%. Adjusting...")
-            recommended_allocation = normalize_allocation(recommended_allocation)
-        return recommended_allocation
     except Exception as e:
-        print("Error parsing AI allocation recommendation:", e)
-        return []
+        print("json.loads로 파싱 실패:", e)
+        # fallback: ast.literal_eval 사용
+        try:
+            recommended_allocation = ast.literal_eval(content)
+        except Exception as e2:
+            print("ast.literal_eval로 파싱 실패:", e2)
+            return []
+
+    total_allocation = sum(float(item["allocation"]) for item in recommended_allocation)
+    if total_allocation != 100:
+        print("Warning: AI allocation sum is not 100%. Adjusting...")
+        recommended_allocation = normalize_allocation(recommended_allocation)
+    return recommended_allocation
+
 
 # 기존 revision의 ETF와 AI 추천 ETF를 합산하여 전체 비중 재조정
 def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, existing_weight_ratio=0.7):
     """
     기존 revision의 ETF 할당과 AI 추천 ETF 리스트를 기반으로 전체 비중을 재조정하는 함수.
+    기존 ETF의 순서를 유지하고, 신규 ETF는 목록의 마지막에 추가합니다.
     """
-    # recommended_etfs 정규화: 각 항목이 문자열이면 dict로 변환
+    # recommended_etfs 정규화: 문자열이면 dict로 변환
     normalized_recommended_etfs = []
     for etf in recommended_etfs:
         if isinstance(etf, str):
@@ -156,27 +166,26 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
             print("기존 revision etfs 파싱 실패:", e)
             revision_etfs = {}
 
-    # 기존 ETF 할당 정보를 딕셔너리로 추출
-    existing_allocations = {}
+    # 기존 ETF 목록(순서 보존)
+    original_etfs = []
     if revision_etfs and "etfs" in revision_etfs:
-        for item in revision_etfs["etfs"]:
-            ticker = item.get("ticker")
-            allocation = item.get("allocation", 0)
-            if ticker:
-                existing_allocations[ticker] = allocation
+        original_etfs = revision_etfs["etfs"]
 
-    # 추천 ETF 중 기존에 없는 신규 ETF 도출 (ticker 값으로 비교)
-    new_etfs = [etf for etf in recommended_etfs if etf.get("ticker") not in existing_allocations]
-
-    # 기존 ETF의 전체 할당 합을 지정된 비율로 조정
-    total_existing = sum(existing_allocations.values())
+    # 기존 ETF의 순서를 유지하며 할당 재조정
     rebalanced_existing = []
+    total_existing = sum(item.get("allocation", 0) for item in original_etfs)
     if total_existing > 0:
-        for ticker, alloc in existing_allocations.items():
+        for item in original_etfs:
+            ticker = item.get("ticker")
+            alloc = item.get("allocation", 0)
             new_alloc = round(alloc / total_existing * (existing_weight_ratio * 100), 2)
             rebalanced_existing.append({"ticker": ticker, "allocation": new_alloc})
 
-    # 신규 ETF에 대해서는 AI 추천 비중을 받아 전체에서 (1 - existing_weight_ratio)% 할당
+    # 기존 ETF 목록에 없는 신규 ETF 도출 (ticker 값으로 비교)
+    existing_tickers = {item.get("ticker") for item in original_etfs}
+    new_etfs = [etf for etf in recommended_etfs if etf.get("ticker") not in existing_tickers]
+
+    # 신규 ETF에 대해서 AI 추천 할당 산출 (전체 중 (1 - existing_weight_ratio)% 배분)
     rebalanced_new = []
     if new_etfs:
         new_allocations = get_allocation_for_etfs(new_etfs)
@@ -186,9 +195,9 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
                 new_alloc = round(item["allocation"] / total_new_alloc * ((1 - existing_weight_ratio) * 100), 2)
                 rebalanced_new.append({"ticker": item["ticker"], "allocation": new_alloc})
 
-    # 기존 ETF와 신규 ETF 병합
+    # 기존 ETF 순서 유지 후 신규 ETF 추가
     merged_allocations = rebalanced_existing + rebalanced_new
-    print(merged_allocations, "디버그용")
+    print("Merged Allocations:", merged_allocations)
     total = sum(item["allocation"] for item in merged_allocations)
     if total != 100:
         merged_allocations = normalize_allocation(merged_allocations)
@@ -259,33 +268,23 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
 def generate_feedback(portfolio_id, user_id, market_data=None):
     if market_data is None:
         market_data = {"market_condition": "default"}
-    """
-    portfolio_id와 user_id를 받아 해당 포트폴리오의 revision 데이터를 기반으로 AI 피드백을 생성하고,
-    재조정된 ETF 비중 정보와 함께 현재 사용자가 보유한 ETF 정보를 반영하여 추천합니다.
-    """
     from app.ai.ai import fetch_user_info, fetch_etf_data, fetch_mbti_recommendation, ai_recommend_etfs, euclid_etfs
 
-    # 사용자 정보 조회
+    # 사용자 정보 및 리비전 데이터 조회
     user_info = fetch_user_info(user_id)
     if not user_info:
         return "사용자 정보를 찾을 수 없습니다.", []
-
-    # 포트폴리오 최신 revision 조회
     revision_data = fetch_revision_by_portfolio(portfolio_id)
     if not revision_data:
         return "포트폴리오 데이터가 없습니다.", []
     etf_data = fetch_etf_data()
 
     portfolio_pc_vector = get_portfolio_pc_vector(revision_data)
-    #1. 리비전데이터 가져오고
     target_vector = np.array(user_info.get("mbti_vector"))
     preference_etfs = euclid_etfs(target_vector, etf_data)
-    #1-1 유클리드 거리 계산하고
     market_conditions = market_data.dict()
-    print(f"사용할 시장 지표: {market_conditions}")
-    #2. mbti추천 데이터 가져오고
+    print("사용할 시장 지표:", market_conditions)
     mbti_recommendation = fetch_mbti_recommendation(user_info.get("mbti_code"))
-    #3. ai etf추천데이터 만들고.
     ai_etf_recommendation = ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendation)
     if not ai_etf_recommendation:
         return json.dumps({"error": "AI 추천 ETF를 생성할 수 없습니다."}, ensure_ascii=False)
@@ -303,7 +302,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
         "portfolio_pc_vector": portfolio_pc_vector.tolist(),
         "target_pc_vector": target_vector.tolist(),
         "preference_etfs": preference_etfs[["ticker"]].to_dict(orient="list"),
-        "ai_recommendation_etfs": rebalanced_allocation,  # 고쳐서 줄지
+        "ai_recommendation_etfs": rebalanced_allocation,
         "mbti_recommendation_etfs": mbti_recommendation,
         "current_etfs": current_etfs,
         "user_info": {
@@ -333,15 +332,13 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
     """
     response = client.chat.completions.create(
         model="gpt-4o",
-        # todo : 펑션콜을 의무로 태우면서도 user 프롬프트 안에 있는 내용대로 최종응답이 와야한다.
-        # (펑션 페이로드에 있는 인자들을 json형태의 포맷으로 반드시 전달해야함. 펑션을 안타는경우 종종있음)
         messages=[
             {"role": "system", "content": "당신은 투자 분석 전문가입니다. 모든 요청에 대해 반드시 analyze_portfolio 펑션을 호출하여야 합니다."},
             {"role": "user", "content": prompt},
             {"role": "assistant",
              "function_call": {"name": "analyze_portfolio", "arguments": json.dumps(function_payload)}}
         ],
-        functions=[
+        functions=[  # analyze_portfolio 함수 스키마는 생략하였습니다.
             {
                 "name": "analyze_portfolio",
                 "description": "Analyze ETF portfolio data and generate feedback including ETF recommendations.",
@@ -350,8 +347,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                     "properties": {
                         "portfolio_pc_vector": {"type": "array", "items": {"type": "number"}},
                         "target_pc_vector": {"type": "array", "items": {"type": "number"}},
-                        "preference_etfs": {"type": "object",
-                                            "properties": {"ticker": {"type": "array", "items": {"type": "string"}}}},
+                        "preference_etfs": {"type": "object", "properties": {"ticker": {"type": "array", "items": {"type": "string"}}}},
                         "ai_recommendation_etfs": {
                             "type": "array",
                             "items": {
@@ -364,10 +360,7 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                             }
                         },
                         "mbti_recommendation_etfs": {"type": "array", "items": {"type": "string"}},
-                        "current_etfs": {"type": "array", "items": {"type": "object",
-                                                                    "properties": {"ticker": {"type": "string"},
-                                                                                   "allocation": {"type": "number"}},
-                                                                    "required": ["ticker", "allocation"]}},
+                        "current_etfs": {"type": "array", "items": {"type": "object", "properties": {"ticker": {"type": "string"}, "allocation": {"type": "number"}}, "required": ["ticker", "allocation"]}},
                         "user_info": {
                             "type": "object",
                             "properties": {
@@ -379,21 +372,17 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
                                 "rebalancing_frequency": {"type": "number"}
                             }
                         },
-                        "market_conditions": {"type": "object", "properties": {"interest_rate": {"type": "number"},
-                                                                               "inflation_rate": {"type": "number"},
-                                                                               "exchange_rate": {"type": "number"}}}
+                        "market_conditions": {"type": "object", "properties": {"interest_rate": {"type": "number"}, "inflation_rate": {"type": "number"}, "exchange_rate": {"type": "number"}}}
                     },
-                    "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info",
-                                 "market_conditions"]
+                    "required": ["portfolio_pc_vector", "target_pc_vector", "preference_etfs", "user_info", "market_conditions"]
                 }
             }
-
         ],
         function_call="auto"
     )
+    print("generate_feedback - 전체 응답:", response)
     message = response.choices[0].message
-
-
+    print("generate_feedback - 메시지:", message)
     feedback_text = message.content
     if not feedback_text:
         if "function_call" in message and "arguments" in message["function_call"]:

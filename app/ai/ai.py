@@ -107,14 +107,14 @@ def ai_recommend_etfs(user_info, etf_data, market_conditions, mbti_recommendatio
             {"role": "user", "content": prompt}
         ]
     )
+    print("AI recommend_etfs response:", response)
     content = response.choices[0].message.content.strip()
     if not content:
         print("AI recommendation response is empty, returning default empty list.")
         return []
     try:
-        print(content)
-        gpt_recommendation = content
-        return gpt_recommendation
+        print("AI recommendation raw output:", content)
+        return content  # 반환값은 단순 티커 리스트 문자열
     except Exception as e:
         print("Error parsing AI recommendation:", e)
         return []
