@@ -185,7 +185,7 @@ def get_allocation_with_revision_rebalance(recommended_etfs, revision_etfs, exis
 
 # DB의 revision 데이터를 업데이트하는 함수
 def update_revision_data(portfolio_id, merged_allocations, market_indicators, user_indicators, ai_feedback):
-    """포트폴리오 리비전 데이터를 업데이트하는 함수"""
+    """포트폴리오 리비전 데이터를 업데이트하는 함수 (etfs 컬럼은 덮어쓰지 않고 ai_feedback만 업데이트)"""
     print(':::update_revision_data 함수가 호출되었습니다.:::')
     try:
         connection = pymysql.connect(
@@ -205,32 +205,29 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
 
         if result:
             revision_id = result[0]
-            # ai_feedback 처리
+            # ai_feedback 처리: ai_feedback 컬럼에 "feedback"과 "ai_etfs"가 함께 들어가야 함
             if not ai_feedback or ai_feedback in ["", "null", "None"]:
-                ai_feedback_json = json.dumps({"feedback": "AI 피드백 데이터 없음"}, ensure_ascii=False)
-            elif isinstance(ai_feedback, (dict, list)):
-                ai_feedback_json = json.dumps(ai_feedback, ensure_ascii=False, default=json_serial)
+                ai_feedback_obj = {"feedback": "AI 피드백 데이터 없음", "ai_etfs": merged_allocations}
+            elif isinstance(ai_feedback, dict):
+                # 만약 ai_feedback가 dict라면 "feedback" 값을 가져오고, ai_etfs는 새로 들어온 추천값으로 덮어씀
+                ai_feedback_obj = {"feedback": ai_feedback.get("feedback", ""), "ai_etfs": merged_allocations}
             else:
-                ai_feedback_json = json.dumps({"feedback": str(ai_feedback)}, ensure_ascii=False)
-
-            etfs_json = json.dumps({"etfs": merged_allocations}, ensure_ascii=False, default=json_serial)
+                # ai_feedback이 문자열인 경우
+                ai_feedback_obj = {"feedback": str(ai_feedback), "ai_etfs": merged_allocations}
+            ai_feedback_json = json.dumps(ai_feedback_obj, ensure_ascii=False, default=json_serial)
             market_indicators_json = json.dumps(market_indicators, ensure_ascii=False, default=json_serial)
             user_indicators_json = json.dumps(user_indicators, ensure_ascii=False, default=json_serial)
 
-            if ai_feedback_json == '""':
-                ai_feedback_json = 'null'
-
+            # etfs 컬럼은 업데이트하지 않도록 쿼리 수정
             query = """
                 UPDATE revision
-                SET etfs = %s,
-                    market_indicators = %s,
+                SET market_indicators = %s,
                     user_indicators = %s,
                     ai_feedback = %s
                 WHERE portfolio_id = %s AND revision_id = %s
             """
             print('R데이터 쿼리 실행.')
             cursor.execute(query, (
-                etfs_json,
                 market_indicators_json,
                 user_indicators_json,
                 ai_feedback_json,
@@ -245,6 +242,7 @@ def update_revision_data(portfolio_id, merged_allocations, market_indicators, us
         connection.close()
     except Exception as e:
         print("Error updating revision data:", e)
+
 
 # revision 데이터를 기반으로 AI 피드백을 생성하고 DB를 업데이트하는 함수
 def generate_feedback(portfolio_id, user_id, market_data=None):
