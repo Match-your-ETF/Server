@@ -385,22 +385,3 @@ def generate_feedback(portfolio_id, user_id, market_data=None):
         feedback_text
     )
     return feedback_text, rebalanced_allocation
-
-if __name__ == '__main__':
-    import argparse
-    import sys
-
-    parser = argparse.ArgumentParser(description='리비전 모듈 테스트')
-    parser.add_argument('--portfolio_id', type=int, default=178, help='테스트할 포트폴리오 ID')
-    parser.add_argument('--user_id', type=int, default=2, help='테스트할 사용자 ID')
-    parser.add_argument('--market_data', type=str, default="default", help='테스트할 시장 지표 데이터')
-    args = parser.parse_args()
-
-    print("테스트 시작: portfolio_id =", args.portfolio_id, ", user_id =", args.user_id)
-    try:
-        feedback, allocation = generate_feedback(args.portfolio_id, args.user_id, args.market_data)
-        print("AI 피드백:", feedback)
-        print("재조정 ETF 할당:", allocation)
-    except Exception as e:
-        print("테스트 중 오류 발생:", e)
-        sys.exit(1)
