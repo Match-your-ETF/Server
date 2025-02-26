@@ -25,9 +25,10 @@ def create_portfolio_with_context(user_id: int, mbti_code: str, mbti_vector: str
     cursor = conn.cursor()
 
     try:
+        # user 테이블의 mbti_code 및 mbti_vector 업데이트
         cursor.execute(
-            "UPDATE user SET mbti_vector = %s WHERE user_id = %s",
-            (mbti_vector, user_id)
+            "UPDATE user SET mbti_code = %s, mbti_vector = %s WHERE user_id = %s",
+            (mbti_code, mbti_vector, user_id)
         )
         conn.commit()
 
